@@ -1,5 +1,9 @@
 # Dependencies
 node_modules/
+# The bun.lock generated here uses a lockfile version newer than some CI
+# images; npm's lockfile is the portable source of truth for installs.
+bun.lock
+bun.lockb
 
 # Build output (rebuilt on the host at deploy time)
 dist/
