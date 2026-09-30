@@ -179,3 +179,13 @@ export function contextToPrompt(context: AttendanceContext): string {
 
   return blocks.join("\n\n");
 }
+
+/**
+ * Header line when the chat is focused on one student, so the model knows
+ * to answer only about them.
+ */
+export function focusNoteFor(name: string | null): string | null {
+  return name === null
+    ? null
+    : `The question is about ${name}. Use only their data below and ignore other students unless the question compares them.`;
+}

@@ -2,7 +2,8 @@ import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { api } from "@/convex/_generated/api";
-import { useAction } from "convex/react";
+import { cn } from "@/lib/utils";
+import { useAction, useQuery } from "convex/react";
 import { Bot, Send, Sparkles, User } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
@@ -15,6 +16,55 @@ const SUGGESTIONS = [
   "Summarize attendance for the last two weeks.",
 ];
 
+/** Per-student chat focus: the AI then answers from one student's history. */
+type StudentOption = { _id: string; name: string };
+
+function StudentFocus({
+  students,
+  activeId,
+  onPick,
+}: {
+  students: StudentOption[];
+  activeId: string | null;
+  onPick: (id: string | null) => void;
+}) {
+  if (students.length === 0) return null;
+  return (
+    <div className="mt-4 flex flex-wrap items-center gap-1.5">
+      <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+        Focus:
+      </span>
+      <button
+        type="button"
+        onClick={() => onPick(null)}
+        className={cn(
+          "rounded-full px-3 py-1 text-xs transition-colors",
+          activeId === null
+            ? "bg-primary font-medium text-primary-foreground"
+            : "border border-border text-muted-foreground hover:bg-accent hover:text-foreground",
+        )}
+      >
+        All students
+      </button>
+      {students.slice(0, 12).map((student) => (
+        <button
+          key={student._id}
+          type="button"
+          onClick={() => onPick(student._id)}
+          className={cn(
+            "max-w-[12rem] truncate rounded-full px-3 py-1 text-xs transition-colors",
+            activeId === student._id
+              ? "bg-primary font-medium text-primary-foreground"
+              : "border border-border text-muted-foreground hover:bg-accent hover:text-foreground",
+          )}
+        >
+          {student.name}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 /**
  * AI Agent page: ask questions about attendance in plain language.
  * Answers come from the checkAttendance action, which feeds the model the
@@ -24,8 +74,10 @@ export default function Assistant() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
+  const [focusId, setFocusId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const checkAttendance = useAction(api.attendance.ask);
+  const roster = useQuery(api.students.list) ?? [];
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
@@ -40,7 +92,10 @@ export default function Assistant() {
     setPending(true);
 
     try {
-      const res = await checkAttendance({ question });
+      const res = await checkAttendance({
+        question,
+        studentId: focusId ?? undefined,
+      });
       setMessages((prev) => [
         ...prev,
         {
@@ -79,6 +134,11 @@ export default function Assistant() {
             Pangutana bahin sa attendance sa estudyante gamit ang ordinaryong
             pinulongan. Ang tubag gikan sa tinuod nga datos sa ledger.
           </p>
+          <StudentFocus
+            students={roster.map((s) => ({ _id: s._id, name: s.name }))}
+            activeId={focusId}
+            onPick={setFocusId}
+          />
         </div>
 
         {/* Chat */}

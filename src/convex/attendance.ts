@@ -23,6 +23,7 @@ import { internalQueryReference } from "./lib/functionRefs";
 import {
   buildAttendanceContext,
   contextToPrompt,
+  focusNoteFor,
 } from "./lib/attendanceContext";
 import { action } from "./_generated/server";
 
@@ -50,8 +51,12 @@ const gatherContextRef = internalQueryReference<
 >("attendanceInternal:gatherContext");
 
 export const ask = action({
-  args: { question: v.string() },
-  handler: async (ctx, { question }) => {
+  args: {
+    question: v.string(),
+    // Optional student focus: the context narrows to this student's history.
+    studentId: v.optional(v.string()),
+  },
+  handler: async (ctx, { question, studentId }) => {
     const trimmed = question.trim().slice(0, 500);
     if (trimmed.length === 0) {
       return { success: false as const, error: "Type a question first." };
@@ -73,12 +78,25 @@ export const ask = action({
     }
 
     // Real data only: roster + every attendance mark, summarized the same
-    // way the Students page computes them.
+    // way the Students page computes them. With a student focus the context
+    // narrows to that one student so answers are about them.
+    const focusName = studentId
+      ? (contextData.students.find((s) => s._id === studentId)?.name ?? null)
+      : null;
     const context = buildAttendanceContext(
-      contextData.students,
-      contextData.attendance,
+      studentId
+        ? contextData.students.filter((s) => s._id === studentId)
+        : contextData.students,
+      studentId
+        ? contextData.attendance.filter((a) => a.studentId === studentId)
+        : contextData.attendance,
     );
-    const contextText = contextToPrompt(context);
+    const contextText = [
+      focusNoteFor(focusName),
+      contextToPrompt(context),
+    ]
+      .filter((part) => part !== null)
+      .join("\n\n");
 
     const systemPrompt = [
       "You are the Ledger AI Attendance Assistant for a tutoring program.",
