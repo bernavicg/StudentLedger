@@ -322,6 +322,20 @@ export function AppShell({
               Scrapes
             </Link>
           )}
+          {isAdmin && (
+            <Link
+              to="/import"
+              className={cn(
+                "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs transition-colors",
+                active === "import"
+                  ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
+                  : "text-muted-foreground",
+              )}
+            >
+              <Users className="size-3.5" />
+              Import
+            </Link>
+          )}
           <Link
             to="/assistant"
             className={cn(
