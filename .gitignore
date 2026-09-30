@@ -1,9 +1,14 @@
 # Dependencies
 node_modules/
 # The bun.lock generated here uses a lockfile version newer than some CI
-# images; npm's lockfile is the portable source of truth for installs.
+# images; CI installs resolve fresh from package.json instead.
 bun.lock
 bun.lockb
+# npm lockfiles generated via `bun x npm` on Windows come out mangled
+# (missing optional platform deps/integrity), breaking clean installs.
+package-lock.json
+npm-shrinkwrap.json
+yarn.lock
 
 # Build output (rebuilt on the host at deploy time)
 dist/
