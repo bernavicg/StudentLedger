@@ -37,6 +37,7 @@ export function AppShell({
     | "sheets"
     | "scrapes"
     | "import"
+    | "assistant"
     | "admin";
 }) {
   const { user, signOut } = useAuth();
@@ -164,6 +165,18 @@ export function AppShell({
               Import students
             </Link>
           )}
+          <Link
+            to="/assistant"
+            className={cn(
+              "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors",
+              active === "assistant"
+                ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
+                : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground",
+            )}
+          >
+            <Sparkles className="size-4" />
+            AI Assistant
+          </Link>
           {isAdmin && (
             <Link
               to="/admin"
@@ -309,6 +322,18 @@ export function AppShell({
               Scrapes
             </Link>
           )}
+          <Link
+            to="/assistant"
+            className={cn(
+              "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs transition-colors",
+              active === "assistant"
+                ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
+                : "text-muted-foreground",
+            )}
+          >
+            <Sparkles className="size-3.5" />
+            AI
+          </Link>
           {isAdmin && (
             <Link
               to="/admin"

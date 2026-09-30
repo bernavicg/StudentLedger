@@ -20,6 +20,7 @@ const StudentDetail = lazy(() => import("./pages/StudentDetail.tsx"));
 const Approvals = lazy(() => import("./pages/Approvals.tsx"));
 const Sheets = lazy(() => import("./pages/Sheets.tsx"));
 const Scrapes = lazy(() => import("./pages/Scrapes.tsx"));
+const Assistant = lazy(() => import("./pages/Assistant.tsx"));
 const Admin = lazy(() => import("./pages/Admin.tsx"));
 const ImportStudents = lazy(() => import("./pages/ImportStudents.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
@@ -215,6 +216,14 @@ createRoot(document.getElementById("root")!).render(
                 element={
                   <RequireAuth>
                     <ImportStudents />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/assistant"
+                element={
+                  <RequireAuth>
+                    <Assistant />
                   </RequireAuth>
                 }
               />
