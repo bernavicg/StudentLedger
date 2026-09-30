@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# Build output (rebuilt on the host at deploy time)
+dist/
+
+# Local env & secrets — NEVER commit these
+.env
+.env.local
+.env.*.local
+*.pem
+jwks.tmp.json
+jwt_private.tmp.txt
+
+# Convex local
+.convex/
+*_generated.local
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Freebuff local runtime state
+.freebuff/
+
+# Misc
+*.log
+npm-debug.log*

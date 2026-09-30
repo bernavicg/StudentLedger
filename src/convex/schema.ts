@@ -1,0 +1,196 @@
+import { authTables } from "@convex-dev/auth/server";
+import { defineSchema, defineTable } from "convex/server";
+import { Infer, v } from "convex/values";
+
+// default user roles. can add / remove based on the project as needed
+export const ROLES = {
+  ADMIN: "admin",
+  USER: "user",
+  MEMBER: "member",
+} as const;
+
+export const roleValidator = v.union(
+  v.literal(ROLES.ADMIN),
+  v.literal(ROLES.USER),
+  v.literal(ROLES.MEMBER),
+);
+export type Role = Infer<typeof roleValidator>;
+
+const schema = defineSchema(
+  {
+    // default auth tables using convex auth.
+    ...authTables, // do not remove or modify
+
+    // the users table is the default users table that is brought in by the authTables
+    users: defineTable({
+      name: v.optional(v.string()), // name of the user. do not remove
+      image: v.optional(v.string()), // image of the user. do not remove
+      email: v.optional(v.string()), // email of the user. do not remove
+      emailVerificationTime: v.optional(v.number()), // email verification time. do not remove
+      isAnonymous: v.optional(v.boolean()), // is the user anonymous. do not remove
+
+      role: v.optional(roleValidator), // role of the user. do not remove
+    })
+      .index("email", ["email"]) // index for the email. do not remove or modify
+      .index("by_role", ["role"]),
+
+    // A single ledger entry: one line of money in or out, with a status.
+    // For student charges: amount > 0 = what the student owes/paid; the
+    // provider is who the student originally paid the (higher) amount to.
+    entries: defineTable({
+      title: v.string(),
+      description: v.optional(v.string()),
+      amount: v.number(), // stored as a signed number of centavos: negative for money out
+      status: v.union(
+        v.literal("pending"),
+        v.literal("approved"),
+        v.literal("rejected"),
+      ),
+      category: v.optional(v.string()),
+      studentId: v.optional(v.id("students")),
+      provider: v.optional(v.string()),
+      paidAt: v.optional(v.number()), // when the student's payment was settled
+      // Admin review outcome. A rejection always carries a note with the reason.
+      reviewNote: v.optional(v.string()),
+      reviewedBy: v.optional(v.id("users")),
+      reviewedAt: v.optional(v.number()),
+      createdBy: v.id("users"),
+      createdAt: v.number(),
+      updatedAt: v.number(),
+    })
+      .index("by_createdBy", ["createdBy"])
+      .index("by_status", ["status"])
+      .index("by_studentId", ["studentId"]),
+
+    // A discussion message attached to one entry.
+    comments: defineTable({
+      entryId: v.id("entries"),
+      authorId: v.id("users"),
+      body: v.string(),
+      createdAt: v.number(),
+    }).index("by_entryId", ["entryId"]),
+
+    // An enrolled student with their authorized service plan.
+    // The max authorized amount is DERIVED, never stored:
+    //   totalSessions × ratePerSessionCents
+    // ratePerSessionCents is the per-session price; authorizedMinutes is the
+    // length of each authorized session (30 or 60).
+    students: defineTable({
+      name: v.string(),
+      contact: v.optional(v.string()),
+      totalSessions: v.number(),
+      ratePerSessionCents: v.optional(v.number()),
+      authorizedMinutes: v.optional(v.union(v.literal(30), v.literal(60))),
+      notes: v.optional(v.string()),
+      createdBy: v.id("users"),
+      createdAt: v.number(),
+      updatedAt: v.number(),
+    }).index("by_createdBy", ["createdBy"]),
+
+    // A service provider a student paid (tutoring center, school, etc.).
+    // Ledger entries reference providers by name; the roster keeps them
+    // consistent so the entry dialogs can offer a picker.
+    providers: defineTable({
+      name: v.string(),
+      contact: v.optional(v.string()),
+      ssid: v.optional(v.string()),
+      notes: v.optional(v.string()),
+      createdBy: v.id("users"),
+      createdAt: v.number(),
+      updatedAt: v.number(),
+    }).index("by_createdBy", ["createdBy"]),
+
+    // One record per day a student attended. sessionsConsumed scales with
+    // duration: a 60-minute mark against a 30-minute authorization costs 2.
+    attendance: defineTable({
+      studentId: v.id("students"),
+      day: v.string(), // YYYY-MM-DD, chosen manually by the recording user
+      startTime: v.optional(v.string()), // "HH:MM" 24h, 8:00am-8:45pm in 15-min steps
+      endTime: v.optional(v.string()), // start + duration, computed on the server
+      sessionNumber: v.number(), // first session index this mark consumed
+      durationMinutes: v.optional(v.number()), // minutes the session ran
+      sessionsConsumed: v.optional(v.number()), // defaults to 1 on old rows
+      recordedBy: v.id("users"),
+      createdAt: v.number(),
+      // Admin review state. Absent on old rows, which are treated as pending.
+      reviewStatus: v.optional(
+        v.union(v.literal("pending"), v.literal("approved"), v.literal("rejected")),
+      ),
+      // Required when rejected: why the mark was turned down.
+      reviewNote: v.optional(v.string()),
+      reviewedBy: v.optional(v.id("users")),
+      reviewedAt: v.optional(v.number()),
+    })
+      .index("by_studentId", ["studentId"])
+      .index("by_studentId_day", ["studentId", "day"]),
+
+    // A sieve scrape run. The row is written BEFORE the POST so a crash during
+    // the create call is visible instead of silently re-starting a run, and
+    // `sessionId` is stored as soon as the 202 returns so polling can resume
+    // after a restart without creating a duplicate (the create call is never
+    // auto-retried after a timeout).
+    scrapes: defineTable({
+      instruction: v.string(),
+      targetUrls: v.optional(v.array(v.string())),
+      complianceMode: v.string(),
+      // "starting" → the POST is in flight. Then queued/running/done/refused/error.
+      status: v.string(),
+      sessionId: v.optional(v.string()),
+      summary: v.optional(v.string()),
+      schemaConformance: v.optional(v.string()),
+      conformanceNote: v.optional(v.string()),
+      // Validated payload, JSON-encoded (the UI only ever renders it).
+      result: v.optional(v.string()),
+      files: v.optional(
+        v.array(
+          v.object({
+            name: v.string(),
+            size: v.optional(v.number()),
+            ext: v.optional(v.string()),
+            url: v.string(),
+          }),
+        ),
+      ),
+      refusalCode: v.optional(v.string()),
+      refusalMessage: v.optional(v.string()),
+      turns: v.optional(v.number()),
+      // Turn bookkeeping for follow-ups: the count observed before the message
+      // was posted, and whether one is still outstanding.
+      turnsBefore: v.number(),
+      awaitingTurn: v.boolean(),
+      lastPolledAt: v.optional(v.number()),
+      lastError: v.optional(v.string()),
+      createdBy: v.id("users"),
+      createdAt: v.number(),
+      updatedAt: v.number(),
+    })
+      .index("by_createdBy", ["createdBy"])
+      .index("by_sessionId", ["sessionId"])
+      .index("by_status", ["status"]),
+
+    // Singleton row tracking the Google Sheets mirror: when we last synced,
+    // a fingerprint of the data we wrote, and the spreadsheet we target.
+    // The fingerprint lets the scheduled sync skip work when nothing changed.
+    appSettings: defineTable({
+      key: v.string(), // always "main" — one settings row for the whole app
+      lastSyncAt: v.optional(v.number()),
+      lastFingerprint: v.optional(v.string()),
+      lastError: v.optional(v.string()),
+      lastSummary: v.optional(v.string()),
+      // Spreadsheet we write the mirror into. Falls back to the
+      // GOOGLE_SHEET_ID env var when unset.
+      targetSheetId: v.optional(v.string()),
+      // The spreadsheet the last sync actually wrote to (env-resolved).
+      // Kept apart from targetSheetId so recording a sync can never overwrite
+      // the admin's saved choice.
+      lastSyncedSheetId: v.optional(v.string()),
+      // Spreadsheet shown in the embedded viewer on the Sheets page.
+      embedSheetId: v.optional(v.string()),
+    }).index("by_key", ["key"]),
+  },
+  {
+    schemaValidation: false,
+  },
+);
+
+export default schema;
