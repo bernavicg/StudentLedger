@@ -12,8 +12,8 @@
  *
  * The node runtime is required because @vly-ai/integrations pulls the Vercel
  * AI SDK. Actions have no ctx.db, so the data comes from an internal query
- * (attendanceInternal) — the same split sieve.ts/sieveInternal.ts uses. All
- * logic that touches the data is unit-tested in
+ * (attendanceInternal) — the same split other node actions in this codebase
+ * use. All logic that touches the data is unit-tested in
  * src/convex/lib/attendanceContext.ts and stays isolate-safe.
  */
 

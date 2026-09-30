@@ -124,49 +124,18 @@ const schema = defineSchema(
       .index("by_studentId", ["studentId"])
       .index("by_studentId_day", ["studentId", "day"]),
 
-    // A sieve scrape run. The row is written BEFORE the POST so a crash during
-    // the create call is visible instead of silently re-starting a run, and
-    // `sessionId` is stored as soon as the 202 returns so polling can resume
-    // after a restart without creating a duplicate (the create call is never
-    // auto-retried after a timeout).
-    scrapes: defineTable({
-      instruction: v.string(),
-      targetUrls: v.optional(v.array(v.string())),
-      complianceMode: v.string(),
-      // "starting" → the POST is in flight. Then queued/running/done/refused/error.
-      status: v.string(),
-      sessionId: v.optional(v.string()),
-      summary: v.optional(v.string()),
-      schemaConformance: v.optional(v.string()),
-      conformanceNote: v.optional(v.string()),
-      // Validated payload, JSON-encoded (the UI only ever renders it).
-      result: v.optional(v.string()),
-      files: v.optional(
-        v.array(
-          v.object({
-            name: v.string(),
-            size: v.optional(v.number()),
-            ext: v.optional(v.string()),
-            url: v.string(),
-          }),
-        ),
-      ),
-      refusalCode: v.optional(v.string()),
-      refusalMessage: v.optional(v.string()),
-      turns: v.optional(v.number()),
-      // Turn bookkeeping for follow-ups: the count observed before the message
-      // was posted, and whether one is still outstanding.
-      turnsBefore: v.number(),
-      awaitingTurn: v.boolean(),
-      lastPolledAt: v.optional(v.number()),
-      lastError: v.optional(v.string()),
+    // One school-year Google Doc (September through June) shown in the
+    // Docs page's live viewer. The doc keeps its own colors and formatting —
+    // Google's preview endpoint renders it exactly as shared.
+    gdocs: defineTable({
+      label: v.string(), // e.g. "September" … "June"
+      gdocId: v.string(), // bare document id from the /edit URL
+      position: v.number(), // sort order (Sep=1 … Jun=10)
       createdBy: v.id("users"),
       createdAt: v.number(),
-      updatedAt: v.number(),
     })
-      .index("by_createdBy", ["createdBy"])
-      .index("by_sessionId", ["sessionId"])
-      .index("by_status", ["status"]),
+      .index("by_label", ["label"])
+      .index("by_position", ["position"]),
 
     // Singleton row tracking the Google Sheets mirror: when we last synced,
     // a fingerprint of the data we wrote, and the spreadsheet we target.

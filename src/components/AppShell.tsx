@@ -35,7 +35,7 @@ export function AppShell({
     | "providers"
     | "approvals"
     | "sheets"
-    | "scrapes"
+    | "docs"
     | "import"
     | "assistant"
     | "admin";
@@ -139,16 +139,16 @@ export function AppShell({
           </Link>
           {isAdmin && (
             <Link
-              to="/scrapes"
+              to="/docs"
               className={cn(
                 "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors",
-                active === "scrapes"
+                active === "docs"
                   ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
                   : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground",
               )}
             >
               <ScanSearch className="size-4" />
-              Scrapes
+              Docs
             </Link>
           )}
           {isAdmin && (
@@ -310,16 +310,16 @@ export function AppShell({
           </Link>
           {isAdmin && (
             <Link
-              to="/scrapes"
+              to="/docs"
               className={cn(
                 "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs transition-colors",
-                active === "scrapes"
+                active === "docs"
                   ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
                   : "text-muted-foreground",
               )}
             >
               <ScanSearch className="size-3.5" />
-              Scrapes
+              Docs
             </Link>
           )}
           {isAdmin && (

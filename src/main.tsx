@@ -19,7 +19,7 @@ const Providers = lazy(() => import("./pages/Providers.tsx"));
 const StudentDetail = lazy(() => import("./pages/StudentDetail.tsx"));
 const Approvals = lazy(() => import("./pages/Approvals.tsx"));
 const Sheets = lazy(() => import("./pages/Sheets.tsx"));
-const Scrapes = lazy(() => import("./pages/Scrapes.tsx"));
+const Docs = lazy(() => import("./pages/Docs.tsx"));
 const Assistant = lazy(() => import("./pages/Assistant.tsx"));
 const Admin = lazy(() => import("./pages/Admin.tsx"));
 const ImportStudents = lazy(() => import("./pages/ImportStudents.tsx"));
@@ -201,13 +201,13 @@ createRoot(document.getElementById("root")!).render(
                 }
               />
               <Route
-                path="/scrapes"
+                path="/docs"
                 element={
                   <RequireAuth
-                    title="Sign in to run scrapes"
-                    description="Sieve scrapes are admin-only and spend credits."
+                    title="Sign in to view the docs"
+                    description="School-year Google Docs are for signed-in team members."
                   >
-                    <Scrapes />
+                    <Docs />
                   </RequireAuth>
                 }
               />

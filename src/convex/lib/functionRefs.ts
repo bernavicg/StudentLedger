@@ -3,8 +3,8 @@ import type { DefaultFunctionArgs } from "convex/server";
 
 /**
  * Small typed wrapper around makeFunctionReference for internal queries.
- * Keeps call sites in node actions readable (sieve.ts uses the same pattern
- * with inline makeFunctionReference calls).
+ * Keeps call sites in node actions readable (sheets.ts uses the same
+ * inline makeFunctionReference pattern).
  */
 export function internalQueryReference<Args extends DefaultFunctionArgs, Result>(name: string) {
   return makeFunctionReference<"query", Args, Result>(name);

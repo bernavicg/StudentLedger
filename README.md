@@ -33,13 +33,13 @@ Any static host works. Two good free options:
 - **Netlify / Vercel** — same: framework "Vite", output `dist`
 
 Connect this GitHub repo once; every push redeploys automatically. SPA deep
-links (e.g. `/scrapes`) are handled by the shipped `public/_redirects`
+links (e.g. `/docs`) are handled by the shipped `public/_redirects`
 (Netlify) or the host's single-page-app fallback setting (Cloudflare Pages).
 
 ### Backend (already live)
 
 - Convex functions are deployed to the prod deployment.
-- Secrets (`SIEVE_API_KEY`, `GOOGLE_SERVICE_ACCOUNT_JSON`, …) live in the
+- Secrets (`GOOGLE_SERVICE_ACCOUNT_JSON`, `VLY_INTEGRATION_KEY`, …) live in the
   Convex deployment env — set with `convex env set KEY value`, never in git.
 
 ## Features
@@ -47,7 +47,9 @@ links (e.g. `/scrapes`) are handled by the shipped `public/_redirects`
 - Ledger of entries with admin approval flow
 - Students, providers, and attendance tracking
 - Google Sheets mirror of the whole ledger
-- **Scrapes** (admin): web data extraction powered by the
-  [sieve scrape API](https://scrape.usesieve.com) — start runs, poll to done,
-  download delivered CSV/JSON files, send follow-up turns. The API key is
-  server-side only (Convex env), never shipped to the browser.
+- **Docs** (admin-curated): the school-year Google Docs (September–June)
+  embedded in one live viewer — paste a doc URL per month and Google renders
+  it exactly as shared, original colors and formatting included.
+- **AI Attendance Assistant**: ask questions about attendance in plain
+  language; answers are computed from the real ledger data through the
+  FreeBuff AI gateway.
