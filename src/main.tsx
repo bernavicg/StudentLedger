@@ -33,6 +33,15 @@ function RouteLoading() {
   );
 }
 
+/** New pages open at the top instead of keeping the previous page's scroll. */
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+}
+
 /** Silent error boundary — if VlyToolbar crashes it renders nothing instead of
  *  crashing the whole app (e.g. hook errors in the browser runtime). */
 class ToolbarErrorBoundary extends React.Component<
@@ -125,6 +134,7 @@ createRoot(document.getElementById("root")!).render(
       </ToolbarErrorBoundary>
       <ConvexAuthProvider client={convex}>
         <BrowserRouter>
+          <ScrollToTop />
           <RouteSyncer />
           <Suspense fallback={<RouteLoading />}>
             <Routes>
