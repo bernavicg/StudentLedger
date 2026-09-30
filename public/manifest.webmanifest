@@ -1,0 +1,17 @@
+{
+  "name": "Ledger",
+  "short_name": "Ledger",
+  "description": "Internal ledger management for our team",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f1e8",
+  "theme_color": "#f5f1e8",
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
