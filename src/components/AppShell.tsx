@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import {
   ChevronDown,
   ClipboardCheck,
+  FileText,
   GraduationCap,
   ListTodo,
   Receipt,
@@ -33,6 +34,7 @@ export function AppShell({
   active:
     | "tasks"
     | "entries"
+    | "invoices"
     | "students"
     | "providers"
     | "approvals"
@@ -100,6 +102,18 @@ export function AppShell({
           >
             <Receipt className="size-4" />
             Entries
+          </Link>
+          <Link
+            to="/invoices"
+            className={cn(
+              "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors",
+              active === "invoices"
+                ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
+                : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground",
+            )}
+          >
+            <FileText className="size-4" />
+            Invoices
           </Link>
           <Link
             to="/students"
@@ -283,6 +297,18 @@ export function AppShell({
           >
             <Receipt className="size-3.5" />
             Entries
+          </Link>
+          <Link
+            to="/invoices"
+            className={cn(
+              "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs transition-colors",
+              active === "invoices"
+                ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
+                : "text-muted-foreground",
+            )}
+          >
+            <FileText className="size-3.5" />
+            Invoices
           </Link>
           <Link
             to="/students"

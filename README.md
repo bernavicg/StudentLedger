@@ -48,6 +48,8 @@ links (e.g. `/docs`) are handled by the shipped `public/_redirects`
   progress / done, due dates, overdue tracking) that every signed-in member
   can add to and update
 - Entries ledger with admin approval flow, on its own Entries page
+- **Paper invoices** (admin-curated): upload one PDF or DOC invoice per
+  student and read it in an embedded viewer — view-only for the team.
 - Students, providers, and attendance tracking
 - Google Sheets mirror of the whole ledger
 - **Docs** (admin-curated): the school-year Google Docs (September–June)

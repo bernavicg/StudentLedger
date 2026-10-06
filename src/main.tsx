@@ -14,6 +14,7 @@ const Landing = lazy(() => import("./pages/Landing.tsx"));
 const AuthPage = lazy(() => import("./pages/Auth.tsx"));
 const Tasks = lazy(() => import("./pages/Tasks.tsx"));
 const Entries = lazy(() => import("./pages/Entries.tsx"));
+const Invoices = lazy(() => import("./pages/Invoices.tsx"));
 const EntryDetail = lazy(() => import("./pages/EntryDetail.tsx"));
 const Students = lazy(() => import("./pages/Students.tsx"));
 const Providers = lazy(() => import("./pages/Providers.tsx"));
@@ -158,6 +159,14 @@ createRoot(document.getElementById("root")!).render(
                 element={
                   <RequireAuth>
                     <Entries />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/invoices"
+                element={
+                  <RequireAuth>
+                    <Invoices />
                   </RequireAuth>
                 }
               />

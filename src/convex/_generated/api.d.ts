@@ -17,6 +17,7 @@ import type * as auth_emailOtp from "../auth/emailOtp.js";
 import type * as entries from "../entries.js";
 import type * as gdocs from "../gdocs.js";
 import type * as http from "../http.js";
+import type * as invoices from "../invoices.js";
 import type * as legacyImport from "../legacyImport.js";
 import type * as legacyImportStore from "../legacyImportStore.js";
 import type * as lib_attendanceContext from "../lib/attendanceContext.js";
@@ -53,6 +54,7 @@ declare const fullApi: ApiFromModules<{
   entries: typeof entries;
   gdocs: typeof gdocs;
   http: typeof http;
+  invoices: typeof invoices;
   legacyImport: typeof legacyImport;
   legacyImportStore: typeof legacyImportStore;
   "lib/attendanceContext": typeof lib_attendanceContext;

@@ -158,6 +158,22 @@ const schema = defineSchema(
       .index("by_status", ["status"])
       .index("by_createdBy", ["createdBy"]),
 
+    // One paper invoice document (PDF or DOC) filed under a student.
+    // The file bytes live in Convex file storage; this row keeps the
+    // metadata. Admins upload and delete; every signed-in member views.
+    invoices: defineTable({
+      studentId: v.id("students"),
+      title: v.string(), // human label, defaults to the file name
+      fileName: v.string(),
+      fileId: v.id("_storage"),
+      mimeType: v.string(), // resolved on upload (pdf / doc / docx)
+      sizeBytes: v.number(),
+      createdBy: v.id("users"),
+      createdAt: v.number(),
+    })
+      .index("by_studentId", ["studentId"])
+      .index("by_createdBy", ["createdBy"]),
+
     // Singleton row tracking the Google Sheets mirror: when we last synced,
     // a fingerprint of the data we wrote, and the spreadsheet we target.
     // The fingerprint lets the scheduled sync skip work when nothing changed.
