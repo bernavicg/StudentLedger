@@ -1,20 +1,21 @@
 "use node";
 
 /**
- * AI Attendance Assistant ("AI Agent" page).
+ * AI Assistant ("AI Agent" page).
  *
- * A signed-in member asks a question about attendance ("Asa si Rina?" /
- * "How many sessions does Marco have left?"); the action gathers the real
- * roster + attendance data from the database, builds a compact context, and
- * asks the FreeBuff AI gateway (vly.ai.completion) to answer using ONLY that
- * data. The model never invents numbers: anything numeric comes from the
- * context built here.
+ * A signed-in member asks a question about anything in the app — students,
+ * attendance, ledger entries, the task board, or paper invoices ("Asa si
+ * Rina?", "Unsa nga tasks ang overdue?", "Pila na nga invoice ni Marco?").
+ * The action gathers the real data from the database, builds a compact
+ * context, and asks the FreeBuff AI gateway (vly.ai.completion) to answer
+ * using ONLY that data. The model never invents numbers: anything numeric
+ * comes from the context built here.
  *
  * The node runtime is required because @vly-ai/integrations pulls the Vercel
  * AI SDK. Actions have no ctx.db, so the data comes from an internal query
- * (attendanceInternal) — the same split other node actions in this codebase
+ * (assistantInternal) — the same split other node actions in this codebase
  * use. All logic that touches the data is unit-tested in
- * src/convex/lib/attendanceContext.ts and stays isolate-safe.
+ * src/convex/lib/assistantContext.ts and stays isolate-safe.
  */
 
 import { vly } from "../lib/vly-integrations";
@@ -24,7 +25,15 @@ import {
   buildAttendanceContext,
   contextToPrompt,
   focusNoteFor,
-} from "./lib/attendanceContext";
+  studentLabelFor,
+  summarizeEntries,
+  summarizeInvoices,
+  summarizeTasks,
+  type EntryRow,
+  type EntryStats,
+  type InvoiceRow,
+  type TaskRow,
+} from "./lib/assistantContext";
 import { action } from "./_generated/server";
 
 const gatherContextRef = internalQueryReference<
@@ -34,6 +43,7 @@ const gatherContextRef = internalQueryReference<
     students: {
       _id: string;
       name: string;
+      caseNo?: string | null;
       totalSessions: number;
       ratePerSessionCents?: number | null;
       authorizedMinutes?: number | null;
@@ -47,8 +57,12 @@ const gatherContextRef = internalQueryReference<
       reviewStatus?: "pending" | "approved" | "rejected" | null;
       reviewNote?: string | null;
     }[];
+    entries: EntryRow[];
+    entryStats: EntryStats | null;
+    tasks: TaskRow[];
+    invoices: InvoiceRow[];
   }
->("attendanceInternal:gatherContext");
+>("assistantInternal:gatherContext");
 
 export const ask = action({
   args: {
@@ -73,44 +87,57 @@ export const ask = action({
     }
 
     const contextData = await ctx.runQuery(gatherContextRef, {});
-    if (contextData.user === null) {
+    if (contextData.user === null || contextData.entryStats === null) {
       return { success: false as const, error: "Sign in to continue." };
     }
 
-    // Real data only: roster + every attendance mark, summarized the same
-    // way the Students page computes them. With a student focus the context
-    // narrows to that one student so answers are about them.
+    // Real data only: the roster (with case numbers), every attendance mark,
+    // the newest entries, the task board, and the paper invoices. With a
+    // student focus the student/attendance context narrows to that student.
+    const focusedStudents = studentId
+      ? contextData.students.filter((s) => s._id === studentId)
+      : contextData.students;
+    const focusedAttendance = studentId
+      ? contextData.attendance.filter((a) => a.studentId === studentId)
+      : contextData.attendance;
     const focusName = studentId
       ? (contextData.students.find((s) => s._id === studentId)?.name ?? null)
       : null;
-    const context = buildAttendanceContext(
-      studentId
-        ? contextData.students.filter((s) => s._id === studentId)
-        : contextData.students,
-      studentId
-        ? contextData.attendance.filter((a) => a.studentId === studentId)
-        : contextData.attendance,
-    );
-    const contextText = [
-      focusNoteFor(focusName),
-      contextToPrompt(context),
-    ]
-      .filter((part) => part !== null)
-      .join("\n\n");
 
+    const attendanceContext = buildAttendanceContext(
+      focusedStudents.map((student) => ({
+        ...student,
+        // The case number rides along wherever the student is named.
+        name: studentLabelFor(student),
+      })),
+      focusedAttendance,
+    );
+
+    const sections = [
+      "=== STUDENTS & ATTENDANCE ===",
+      contextToPrompt(attendanceContext),
+      "=== ENTRIES (LEDGER) ===",
+      summarizeEntries(contextData.entryStats, contextData.entries),
+      "=== TASKS ===",
+      summarizeTasks(contextData.tasks),
+      "=== PAPER INVOICES ===",
+      summarizeInvoices(contextData.invoices),
+    ];
+
+    const focusNote = focusNoteFor(focusName);
     const systemPrompt = [
-      "You are the Ledger AI Attendance Assistant for a tutoring program.",
-      "Answer questions about student attendance using ONLY the data below.",
-      "Numbers (sessions used, remaining, hours) must come straight from the data — never invent or extrapolate.",
+      "You are the Ledger AI Assistant for a tutoring program team.",
+      "Answer questions about students, attendance, ledger entries (money), the task board, and paper invoices using ONLY the data below.",
+      "Numbers (sessions, amounts, counts) must come straight from the data — never invent or extrapolate.",
       "If the data does not contain the answer, say so plainly.",
       "The person asking is a signed-in team member named "
         + contextData.user.name
         + "; answer them directly.",
       "Be concise and friendly; a short summary line plus a compact list beats long prose.",
-      "Dates are YYYY-MM-DD.",
+      "Dates are YYYY-MM-DD; amounts are US dollars; students may carry a case number like (case CASE-2026-014).",
+      ...(focusNote === null ? [] : [focusNote]),
       "",
-      "=== ATTENDANCE DATA ===",
-      contextText,
+      ...sections,
     ].join("\n");
 
     const completion = await vly.ai.completion({
@@ -120,7 +147,7 @@ export const ask = action({
         { role: "user", content: trimmed },
       ],
       temperature: 0.3,
-      maxTokens: 500,
+      maxTokens: 700,
     });
 
     if (!completion.success || !completion.data) {

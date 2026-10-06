@@ -31,6 +31,7 @@ export const save = mutation({
     mimeType: v.string(),
     sizeBytes: v.number(),
     title: v.optional(v.string()),
+    caseNo: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const admin = await requireAdmin(ctx);
@@ -50,6 +51,7 @@ export const save = mutation({
     return await ctx.db.insert("invoices", {
       studentId: args.studentId,
       title: args.title?.trim() || trimmedName.replace(/\.[^.]+$/, ""),
+      caseNo: args.caseNo?.trim() || undefined,
       fileName: trimmedName,
       fileId: args.storageId,
       mimeType: args.mimeType,
@@ -85,6 +87,7 @@ export const list = query({
         title: invoice.title,
         studentId: invoice.studentId,
         studentName: studentNames.get(invoice.studentId) ?? "Unknown student",
+        caseNo: invoice.caseNo,
         fileName: invoice.fileName,
         mimeType: invoice.mimeType,
         sizeBytes: invoice.sizeBytes,

@@ -10,8 +10,8 @@
 
 import type * as appSettings from "../appSettings.js";
 import type * as approvals from "../approvals.js";
-import type * as attendance from "../attendance.js";
-import type * as attendanceInternal from "../attendanceInternal.js";
+import type * as assistant from "../assistant.js";
+import type * as assistantInternal from "../assistantInternal.js";
 import type * as auth from "../auth.js";
 import type * as auth_emailOtp from "../auth/emailOtp.js";
 import type * as entries from "../entries.js";
@@ -20,6 +20,7 @@ import type * as http from "../http.js";
 import type * as invoices from "../invoices.js";
 import type * as legacyImport from "../legacyImport.js";
 import type * as legacyImportStore from "../legacyImportStore.js";
+import type * as lib_assistantContext from "../lib/assistantContext.js";
 import type * as lib_attendanceContext from "../lib/attendanceContext.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_fingerprint from "../lib/fingerprint.js";
@@ -47,8 +48,8 @@ import type {
 declare const fullApi: ApiFromModules<{
   appSettings: typeof appSettings;
   approvals: typeof approvals;
-  attendance: typeof attendance;
-  attendanceInternal: typeof attendanceInternal;
+  assistant: typeof assistant;
+  assistantInternal: typeof assistantInternal;
   auth: typeof auth;
   "auth/emailOtp": typeof auth_emailOtp;
   entries: typeof entries;
@@ -57,6 +58,7 @@ declare const fullApi: ApiFromModules<{
   invoices: typeof invoices;
   legacyImport: typeof legacyImport;
   legacyImportStore: typeof legacyImportStore;
+  "lib/assistantContext": typeof lib_assistantContext;
   "lib/attendanceContext": typeof lib_attendanceContext;
   "lib/auth": typeof lib_auth;
   "lib/fingerprint": typeof lib_fingerprint;

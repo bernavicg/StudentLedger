@@ -153,6 +153,7 @@ export const list = query({
         _id: student._id,
         name: student.name,
         contact: student.contact,
+        caseNo: student.caseNo ?? null,
         notes: student.notes,
         totalSessions: student.totalSessions,
         ratePerSessionCents: student.ratePerSessionCents ?? null,
@@ -311,6 +312,7 @@ export const get = query({
     );
     return {
       ...student,
+      caseNo: student.caseNo ?? null,
       ratePerSessionCents: student.ratePerSessionCents ?? null,
       authorizedMinutes: student.authorizedMinutes ?? null,
       // Derived cap: authorized sessions × rate per session.
@@ -376,13 +378,14 @@ export const create = mutation({
   args: {
     name: v.string(),
     contact: v.optional(v.string()),
+    caseNo: v.optional(v.string()),
     totalSessions: v.number(),
     ...authArgs,
     notes: v.optional(v.string()),
   },
   handler: async (
     ctx,
-    { name, contact, totalSessions, notes, ...auth },
+    { name, contact, caseNo, totalSessions, notes, ...auth },
   ) => {
     const { userId } = await requireUser(ctx);
     const trimmed = name.trim();
@@ -394,6 +397,7 @@ export const create = mutation({
     return await ctx.db.insert("students", {
       name: trimmed,
       contact: contact?.trim() || undefined,
+      caseNo: caseNo?.trim() || undefined,
       totalSessions,
       ...normalizeAuth(auth),
       notes: notes?.trim() || undefined,
@@ -410,13 +414,14 @@ export const update = mutation({
     studentId: v.id("students"),
     name: v.string(),
     contact: v.optional(v.string()),
+    caseNo: v.optional(v.string()),
     totalSessions: v.number(),
     ...authArgs,
     notes: v.optional(v.string()),
   },
   handler: async (
     ctx,
-    { studentId, name, contact, totalSessions, notes, ...auth },
+    { studentId, name, contact, caseNo, totalSessions, notes, ...auth },
   ) => {
     const { role } = await requireUser(ctx);
     if (role !== "admin") {
@@ -432,6 +437,7 @@ export const update = mutation({
     await ctx.db.patch(studentId, {
       name: trimmed,
       contact: contact?.trim() || undefined,
+      caseNo: caseNo?.trim() || undefined,
       totalSessions,
       ...normalizeAuth(auth),
       notes: notes?.trim() || undefined,

@@ -131,6 +131,7 @@ export default function StudentDetail() {
 
   const [editName, setEditName] = useState("");
   const [editContact, setEditContact] = useState("");
+  const [editCaseNo, setEditCaseNo] = useState("");
   const [editTotalSessions, setEditTotalSessions] = useState("");
   const [editRate, setEditRate] = useState("");
   const [editMinutes, setEditMinutes] = useState<30 | 60 | null>(null);
@@ -283,6 +284,7 @@ export default function StudentDetail() {
   const openEdit = () => {
     setEditName(student.name);
     setEditContact(student.contact ?? "");
+    setEditCaseNo(student.caseNo ?? "");
     setEditTotalSessions(String(student.totalSessions));
     setEditRate(
       student.ratePerSessionCents !== null
@@ -311,6 +313,7 @@ export default function StudentDetail() {
         studentId: student._id,
         name: editName,
         contact: editContact || undefined,
+        caseNo: editCaseNo || undefined,
         totalSessions: sessions,
         ratePerSession: rateVal,
         authorizedMinutes: editMinutes ?? undefined,
@@ -355,9 +358,16 @@ export default function StudentDetail() {
         {/* Title */}
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="font-serif text-3xl font-semibold tracking-tight sm:text-4xl">
-              {student.name}
-            </h1>
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="font-serif text-3xl font-semibold tracking-tight sm:text-4xl">
+                {student.name}
+              </h1>
+              {student.caseNo && (
+                <span className="rounded bg-muted px-2 py-0.5 font-mono text-xs text-muted-foreground">
+                  {student.caseNo}
+                </span>
+              )}
+            </div>
             <p className="mt-1.5 text-sm text-muted-foreground">
               {student.contact ?? "No contact on file"}
             </p>
@@ -974,6 +984,15 @@ export default function StudentDetail() {
                 id="edit-student-contact"
                 value={editContact}
                 onChange={(e) => setEditContact(e.target.value)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-student-case-no">Case no.</Label>
+              <Input
+                id="edit-student-case-no"
+                value={editCaseNo}
+                onChange={(e) => setEditCaseNo(e.target.value)}
+                placeholder="e.g. CASE-2026-014"
               />
             </div>
             <div className="grid gap-2">

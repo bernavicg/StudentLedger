@@ -48,6 +48,7 @@ type InvoiceRow = {
   title: string;
   studentId: Id<"students">;
   studentName: string;
+  caseNo?: string;
   fileName: string;
   mimeType: string;
   sizeBytes: number;
@@ -234,7 +235,9 @@ export default function Invoices() {
                       )}
                     </div>
                     <p className="mt-1 truncate text-xs text-muted-foreground">
-                      {invoice.studentName} · {formatBytes(invoice.sizeBytes)}{" "}
+                      {invoice.studentName}
+                      {invoice.caseNo ? ` · case ${invoice.caseNo}` : ""} ·{" "}
+                      {formatBytes(invoice.sizeBytes)}{" "}
                       · {formatDate(invoice.createdAt)}
                     </p>
                   </button>
@@ -267,9 +270,10 @@ export default function Invoices() {
                         {current.title}
                       </p>
                       <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                        {current.studentName} · {current.fileName} ·{" "}
-                        {formatBytes(current.sizeBytes)} · uploaded{" "}
-                        {formatDate(current.createdAt)} by{" "}
+                        {current.studentName}
+                        {current.caseNo ? ` · case ${current.caseNo}` : ""} ·{" "}
+                        {current.fileName} · {formatBytes(current.sizeBytes)} ·{" "}
+                        uploaded {formatDate(current.createdAt)} by{" "}
                         {current.uploaderName}
                       </p>
                     </div>
@@ -345,6 +349,7 @@ function UploadDialog({
   const saveInvoice = useMutation(api.invoices.save);
 
   const [studentId, setStudentId] = useState<string>("none");
+  const [caseNo, setCaseNo] = useState("");
   const [title, setTitle] = useState("");
   const [file, setFile] = useState<File | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -357,6 +362,7 @@ function UploadDialog({
 
   const reset = () => {
     setStudentId("none");
+    setCaseNo("");
     setTitle("");
     setFile(undefined);
     if (fileInput.current) fileInput.current.value = "";
@@ -408,6 +414,7 @@ function UploadDialog({
         mimeType,
         sizeBytes: file.size,
         title: title || undefined,
+        caseNo: caseNo || undefined,
       });
       toast.success("Invoice uploaded. Everyone can read it now.");
       reset();
@@ -484,6 +491,19 @@ function UploadDialog({
                 {file.name} · {formatBytes(file.size)}
               </p>
             )}
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="invoice-case-no">
+              Case no. <span className="text-muted-foreground">(optional)</span>
+            </Label>
+            <Input
+              id="invoice-case-no"
+              value={caseNo}
+              onChange={(e) => setCaseNo(e.target.value)}
+              placeholder="e.g. CASE-2026-014"
+              disabled={isSubmitting}
+            />
           </div>
 
           <div className="grid gap-2">

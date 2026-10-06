@@ -77,7 +77,8 @@ export default function Students() {
       ? students.filter(
           (s) =>
             s.name.toLowerCase().includes(query) ||
-            s.contact?.toLowerCase().includes(query),
+            s.contact?.toLowerCase().includes(query) ||
+            s.caseNo?.toLowerCase().includes(query),
         )
       : students;
   }, [students, search]);
@@ -166,12 +167,19 @@ export default function Students() {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <Link
-                        to={`/students/${student._id}`}
-                        className="truncate font-serif text-lg font-semibold hover:text-primary"
-                      >
-                        {student.name}
-                      </Link>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Link
+                          to={`/students/${student._id}`}
+                          className="truncate font-serif text-lg font-semibold hover:text-primary"
+                        >
+                          {student.name}
+                        </Link>
+                        {student.caseNo && (
+                          <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+                            {student.caseNo}
+                          </span>
+                        )}
+                      </div>
                       <p className="mt-0.5 truncate text-xs text-muted-foreground">
                         {student.contact ?? "no contact"}
                       </p>
@@ -341,6 +349,7 @@ function AddStudentDialog({
 }) {
   const [name, setName] = useState("");
   const [contact, setContact] = useState("");
+  const [caseNo, setCaseNo] = useState("");
   const [totalSessions, setTotalSessions] = useState("10");
   const [rate, setRate] = useState("");
   const [minutes, setMinutes] = useState<"30" | "60" | "none">("60");
@@ -364,6 +373,7 @@ function AddStudentDialog({
   const reset = () => {
     setName("");
     setContact("");
+    setCaseNo("");
     setTotalSessions("10");
     setRate("");
     setMinutes("60");
@@ -391,6 +401,7 @@ function AddStudentDialog({
       await onCreate({
         name,
         contact: contact || undefined,
+        caseNo: caseNo || undefined,
         totalSessions: sessions,
         ratePerSession: rateCents,
         authorizedMinutes: minutes === "none" ? undefined : Number(minutes) as 30 | 60,
@@ -447,6 +458,18 @@ function AddStudentDialog({
               value={contact}
               onChange={(e) => setContact(e.target.value)}
               placeholder="Phone or email"
+              disabled={isSubmitting}
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="student-case-no">
+              Case no. <span className="text-muted-foreground">(optional)</span>
+            </Label>
+            <Input
+              id="student-case-no"
+              value={caseNo}
+              onChange={(e) => setCaseNo(e.target.value)}
+              placeholder="e.g. CASE-2026-014"
               disabled={isSubmitting}
             />
           </div>

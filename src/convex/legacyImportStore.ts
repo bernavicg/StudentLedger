@@ -13,7 +13,13 @@ import type { Doc, Id } from "./_generated/dataModel";
 
 const IMPORT_MARKER = "legacy-import";
 
-export type ApplyStudent = { name: string; contact: string; sessions: number; rate: number | undefined };
+export type ApplyStudent = {
+  name: string;
+  contact: string;
+  caseNo: string | undefined;
+  sessions: number;
+  rate: number | undefined;
+};
 export type ApplySession = { student: string; day: string | null; count?: number };
 export type ApplyEntry = { student: string; amount: number | undefined; day: string | null; note: string };
 export type ApplyProvider = { name: string; contact: string };
@@ -30,6 +36,7 @@ export const apply = internalMutation({
       v.object({
         name: v.string(),
         contact: v.string(),
+        caseNo: v.optional(v.string()),
         sessions: v.number(),
         rate: v.optional(v.number()),
       }),
@@ -90,6 +97,7 @@ export const apply = internalMutation({
          */
         await ctx.db.patch(existing, {
           contact: s.contact || prev.contact,
+          caseNo: s.caseNo || prev.caseNo,
           totalSessions: s.sessions > 0 ? s.sessions : (prev.totalSessions ?? 0),
           ratePerSessionCents: s.rate !== undefined ? Math.round(s.rate * 100) : prev.ratePerSessionCents,
           authorizedMinutes,
@@ -100,6 +108,7 @@ export const apply = internalMutation({
         const id = await ctx.db.insert("students", {
           name: s.name,
           contact: s.contact || undefined,
+          caseNo: s.caseNo || undefined,
           totalSessions: s.sessions > 0 ? s.sessions : 0,
           ratePerSessionCents: s.rate !== undefined ? Math.round(s.rate * 100) : undefined,
           authorizedMinutes,

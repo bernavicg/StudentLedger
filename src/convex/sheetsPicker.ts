@@ -33,7 +33,13 @@ const candidatesRef = makeFunctionReference<"action", Record<string, never>, Can
 );
 
 type ApplyArgs = {
-  students: { name: string; contact: string; sessions: number; rate?: number }[];
+  students: {
+    name: string;
+    contact: string;
+    caseNo?: string;
+    sessions: number;
+    rate?: number;
+  }[];
   sessions: { student: string; day: string | null; count?: number }[];
   entries: { student: string; amount?: number; day: string | null; note: string }[];
   providers: { name: string; contact: string }[];
@@ -104,6 +110,7 @@ export const addFromSheets = action({
       .map((c) => ({
         name: c.name,
         contact: "",
+        caseNo: c.caseNo || undefined,
         // Monthly hours ≈ sessions when each is 60 min; fall back to the
         // picker's default when the sheet has no totals.
         sessions:

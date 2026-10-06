@@ -55,6 +55,7 @@ links (e.g. `/docs`) are handled by the shipped `public/_redirects`
 - **Docs** (admin-curated): the school-year Google Docs (September–June)
   embedded in one live viewer — paste a doc URL per month and Google renders
   it exactly as shared, original colors and formatting included.
-- **AI Attendance Assistant**: ask questions about attendance in plain
-  language; answers are computed from the real ledger data through the
-  FreeBuff AI gateway.
+- **AI Assistant**: ask about anything in the app — students (with case
+  numbers), attendance, entries, tasks, paper invoices — in plain language;
+  answers are computed from the real ledger data through the FreeBuff AI
+  gateway.

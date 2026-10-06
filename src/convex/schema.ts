@@ -78,6 +78,7 @@ const schema = defineSchema(
     students: defineTable({
       name: v.string(),
       contact: v.optional(v.string()),
+      caseNo: v.optional(v.string()), // case file number from the legacy sheets
       totalSessions: v.number(),
       ratePerSessionCents: v.optional(v.number()),
       authorizedMinutes: v.optional(v.union(v.literal(30), v.literal(60))),
@@ -164,6 +165,7 @@ const schema = defineSchema(
     invoices: defineTable({
       studentId: v.id("students"),
       title: v.string(), // human label, defaults to the file name
+      caseNo: v.optional(v.string()), // case number printed on the invoice
       fileName: v.string(),
       fileId: v.id("_storage"),
       mimeType: v.string(), // resolved on upload (pdf / doc / docx)

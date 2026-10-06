@@ -12,7 +12,9 @@ type Message = { role: "user" | "assistant"; text: string };
 const SUGGESTIONS = [
   "Which students attended most recently?",
   "How many sessions does each student have left?",
-  "Who has marks still waiting for review?",
+  "Unsa nga entries ang naghulat pa ug review?",
+  "Which tasks are overdue?",
+  "Pila na nga paper invoices ang naa sa matag student?",
   "Summarize attendance for the last two weeks.",
 ];
 
@@ -66,9 +68,10 @@ function StudentFocus({
 }
 
 /**
- * AI Agent page: ask questions about attendance in plain language.
- * Answers come from the checkAttendance action, which feeds the model the
- * real roster + attendance data so it never invents numbers.
+ * AI Agent page: ask questions about anything in the app in plain language —
+ * students, attendance, entries, tasks, paper invoices. Answers come from
+ * the assistant.ask action, which feeds the model the real data so it never
+ * invents numbers.
  */
 export default function Assistant() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -76,7 +79,7 @@ export default function Assistant() {
   const [pending, setPending] = useState(false);
   const [focusId, setFocusId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const checkAttendance = useAction(api.attendance.ask);
+  const askAssistant = useAction(api.assistant.ask);
   const roster = useQuery(api.students.list) ?? [];
 
   useEffect(() => {
@@ -92,7 +95,7 @@ export default function Assistant() {
     setPending(true);
 
     try {
-      const res = await checkAttendance({
+      const res = await askAssistant({
         question,
         studentId: focusId ?? undefined,
       });
@@ -128,11 +131,12 @@ export default function Assistant() {
             AI Agent
           </p>
           <h1 className="mt-1 font-serif text-3xl font-semibold tracking-tight sm:text-4xl">
-            Attendance Assistant
+            AI Assistant
           </h1>
           <p className="mt-1.5 text-sm text-muted-foreground">
-            Pangutana bahin sa attendance sa estudyante gamit ang ordinaryong
-            pinulongan. Ang tubag gikan sa tinuod nga datos sa ledger.
+            Pangutana bahin sa bisan unsa sa ledger — students, attendance,
+            entries, tasks, paper invoices — gamit ang ordinaryong pinulongan.
+            Ang tubag gikan sa tinuod nga datos.
           </p>
           <StudentFocus
             students={roster.map((s) => ({ _id: s._id, name: s.name }))}
@@ -226,7 +230,7 @@ export default function Assistant() {
             <Input
               value={input}
               onChange={(event) => setInput(event.target.value)}
-              placeholder="I-type imong pangutana bahin sa attendance…"
+              placeholder="I-type imong pangutana…"
               disabled={pending}
               className="rounded-full"
             />
