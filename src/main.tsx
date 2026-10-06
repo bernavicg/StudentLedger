@@ -103,6 +103,16 @@ class RootErrorBoundary extends React.Component<
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 
+// Installable Android app (PWA): register the offline shell. The service
+// worker only exists in production builds; dev serves no /sw.js.
+if ("serviceWorker" in navigator && import.meta.env.PROD) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch((error) => {
+      console.warn("[PWA] Service worker registration failed:", error);
+    });
+  });
+}
+
 
 
 function RouteSyncer() {

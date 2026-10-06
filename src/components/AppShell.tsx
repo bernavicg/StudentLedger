@@ -1,12 +1,14 @@
 import { Wordmark } from "@/components/Wordmark";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/use-auth";
+import { usePwaInstall } from "@/hooks/use-pwa-install";
 import { useSheetsAutoSync } from "@/hooks/use-sheets-auto-sync";
 import { initials } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
   ChevronDown,
   ClipboardCheck,
+  Download,
   FileText,
   GraduationCap,
   ListTodo,
@@ -18,7 +20,9 @@ import {
   Users,
 } from "lucide-react";
 import type { ReactNode } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router";
+import { toast } from "sonner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,6 +51,18 @@ export function AppShell({
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const isAdmin = user?.role === "admin";
+  const { isAvailable, installed, install } = usePwaInstall();
+  const [installing, setInstalling] = useState(false);
+
+  const handleInstall = async () => {
+    setInstalling(true);
+    try {
+      const outcome = await install();
+      if (outcome === "accepted") toast.success("Installing the Ledger app…");
+    } finally {
+      setInstalling(false);
+    }
+  };
 
   // Keeps the Google Sheet fresh for admins without a server cron.
   useSheetsAutoSync();
@@ -245,6 +261,16 @@ export function AppShell({
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" side="top" className="w-52">
+              {isAvailable && !installed && (
+                <DropdownMenuItem
+                  onClick={handleInstall}
+                  disabled={installing}
+                  className="cursor-pointer"
+                >
+                  <Download className="mr-2 size-4" />
+                  Install app
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
                 Sign out
               </DropdownMenuItem>
@@ -266,6 +292,16 @@ export function AppShell({
               </Avatar>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              {isAvailable && !installed && (
+                <DropdownMenuItem
+                  onClick={handleInstall}
+                  disabled={installing}
+                  className="cursor-pointer"
+                >
+                  <Download className="mr-2 size-4" />
+                  Install app
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
                 Sign out
               </DropdownMenuItem>
