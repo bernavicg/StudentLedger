@@ -108,7 +108,7 @@ export default function EntryDetail() {
     // A malformed id never loads; show not-found instead of a stuck skeleton.
     if (validId === "skip") {
       return (
-        <AppShell active="dashboard">
+        <AppShell active="entries">
           <div className="mx-auto flex w-full max-w-4xl flex-col items-center px-6 py-24 text-center">
             <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
               404 · entry not found
@@ -118,17 +118,17 @@ export default function EntryDetail() {
             </h1>
             <p className="mt-2 max-w-sm text-sm text-muted-foreground">
               The link looks malformed. Check the URL or head back to the
-              ledger.
+              entries list.
             </p>
             <Button asChild variant="outline" className="mt-6 rounded-full">
-              <Link to="/dashboard">Back to your ledger</Link>
+              <Link to="/entries">Back to entries</Link>
             </Button>
           </div>
         </AppShell>
       );
     }
     return (
-      <AppShell active="dashboard">
+      <AppShell active="entries">
         <div className="mx-auto w-full max-w-4xl px-6 py-10">
           <Skeleton className="h-9 w-72" />
           <Skeleton className="mt-4 h-4 w-96" />
@@ -140,7 +140,7 @@ export default function EntryDetail() {
 
   if (entry === null) {
     return (
-      <AppShell active="dashboard">
+      <AppShell active="entries">
         <div className="mx-auto flex w-full max-w-4xl flex-col items-center px-6 py-24 text-center">
           <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
             404 · entry not found
@@ -152,7 +152,7 @@ export default function EntryDetail() {
             It may have been deleted, or you don't have access to it.
           </p>
           <Button asChild variant="outline" className="mt-6 rounded-full">
-            <Link to="/dashboard">Back to your ledger</Link>
+            <Link to="/entries">Back to entries</Link>
           </Button>
         </div>
       </AppShell>
@@ -238,7 +238,7 @@ export default function EntryDetail() {
     try {
       await removeEntry({ entryId: entry._id });
       toast.success("Entry deleted.");
-      navigate("/dashboard");
+      navigate("/entries");
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Could not delete the entry.",
@@ -281,7 +281,7 @@ export default function EntryDetail() {
   };
 
   return (
-    <AppShell active="dashboard">
+    <AppShell active="entries">
       <div className="mx-auto w-full max-w-4xl px-6 py-8 sm:py-10">
         <Button
           asChild
@@ -289,9 +289,9 @@ export default function EntryDetail() {
           size="sm"
           className="-ml-2 text-muted-foreground"
         >
-          <Link to="/dashboard">
+          <Link to="/entries">
             <ArrowLeft className="mr-1.5 size-3.5" />
-            Back to ledger
+            Back to entries
           </Link>
         </Button>
 

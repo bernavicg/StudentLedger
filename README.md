@@ -44,7 +44,10 @@ links (e.g. `/docs`) are handled by the shipped `public/_redirects`
 
 ## Features
 
-- Ledger of entries with admin approval flow
+- **Task monitoring dashboard**: a shared team to-do board (todo / in
+  progress / done, due dates, overdue tracking) that every signed-in member
+  can add to and update
+- Entries ledger with admin approval flow, on its own Entries page
 - Students, providers, and attendance tracking
 - Google Sheets mirror of the whole ledger
 - **Docs** (admin-curated): the school-year Google Docs (September–June)

@@ -134,7 +134,7 @@ export default function Approvals() {
             pending items for you.
           </p>
           <Button asChild variant="outline" className="mt-6">
-            <Link to="/dashboard">Back to the ledger</Link>
+            <Link to="/entries">Back to entries</Link>
           </Button>
         </div>
       </AppShell>

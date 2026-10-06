@@ -338,7 +338,7 @@ export default function StudentDetail() {
   };
 
   return (
-    <AppShell active="dashboard">
+    <AppShell active="students">
       <div className="mx-auto w-full max-w-4xl px-6 py-8 sm:py-10">
         <Button
           asChild

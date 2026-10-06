@@ -34,6 +34,7 @@ import type * as sheetsInternal from "../sheetsInternal.js";
 import type * as sheetsNode from "../sheetsNode.js";
 import type * as sheetsPicker from "../sheetsPicker.js";
 import type * as students from "../students.js";
+import type * as tasks from "../tasks.js";
 import type * as users from "../users.js";
 
 import type {
@@ -69,6 +70,7 @@ declare const fullApi: ApiFromModules<{
   sheetsNode: typeof sheetsNode;
   sheetsPicker: typeof sheetsPicker;
   students: typeof students;
+  tasks: typeof tasks;
   users: typeof users;
 }>;
 

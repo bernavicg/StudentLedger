@@ -8,7 +8,8 @@ import {
   ChevronDown,
   ClipboardCheck,
   GraduationCap,
-  LayoutGrid,
+  ListTodo,
+  Receipt,
   ScanSearch,
   Sheet,
   Sparkles,
@@ -30,7 +31,8 @@ export function AppShell({
 }: {
   children: ReactNode;
   active:
-    | "dashboard"
+    | "tasks"
+    | "entries"
     | "students"
     | "providers"
     | "approvals"
@@ -79,13 +81,25 @@ export function AppShell({
             to="/dashboard"
             className={cn(
               "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors",
-              active === "dashboard"
+              active === "tasks"
                 ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
                 : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground",
             )}
           >
-            <LayoutGrid className="size-4" />
-            Ledger
+            <ListTodo className="size-4" />
+            Tasks
+          </Link>
+          <Link
+            to="/entries"
+            className={cn(
+              "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors",
+              active === "entries"
+                ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
+                : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground",
+            )}
+          >
+            <Receipt className="size-4" />
+            Entries
           </Link>
           <Link
             to="/students"
@@ -250,13 +264,25 @@ export function AppShell({
             to="/dashboard"
             className={cn(
               "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs transition-colors",
-              active === "dashboard"
+              active === "tasks"
                 ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
                 : "text-muted-foreground",
             )}
           >
-            <LayoutGrid className="size-3.5" />
-            Ledger
+            <ListTodo className="size-3.5" />
+            Tasks
+          </Link>
+          <Link
+            to="/entries"
+            className={cn(
+              "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs transition-colors",
+              active === "entries"
+                ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
+                : "text-muted-foreground",
+            )}
+          >
+            <Receipt className="size-3.5" />
+            Entries
           </Link>
           <Link
             to="/students"

@@ -41,7 +41,6 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useAuth } from "@/hooks/use-auth";
-import { useClaimAdmin } from "@/hooks/use-claim-admin";
 import { cn } from "@/lib/utils";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import {
@@ -95,9 +94,8 @@ const FILTERS: { value: StatusFilter; label: string }[] = [
   { value: "rejected", label: "Rejected" },
 ];
 
-export default function Dashboard() {
+export default function Entries() {
   const { user } = useAuth();
-  const { adminAvailable, claim } = useClaimAdmin();
 
   const {
     results,
@@ -120,21 +118,17 @@ export default function Dashboard() {
   const visible =
     filter === "all" ? results : results.filter((e) => e.status === filter);
 
-  const greeting = user?.name
-    ? `Good ${greetingWord()}, ${firstName(user.name)}`
-    : "Your entries";
-
   return (
-    <AppShell active="dashboard">
+    <AppShell active="entries">
       <div className="mx-auto w-full max-w-4xl px-6 py-8 sm:py-10">
-        {/* Greeting */}
+        {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
-              {user?.role === "admin" ? "Admin view" : "The ledger"}
+              The ledger
             </p>
             <h1 className="mt-1 font-serif text-3xl font-semibold tracking-tight sm:text-4xl">
-              {greeting}
+              Entries
             </h1>
             <p className="mt-1.5 text-sm text-muted-foreground">
               {stats === undefined ? "…" : stats.pending} awaiting review ·{" "}
@@ -145,23 +139,6 @@ export default function Dashboard() {
           </div>
           <NewEntryDialog open={dialogOpen} onOpenChange={setDialogOpen} />
         </div>
-
-        {/* One-time admin claim for the first account on the ledger */}
-        {adminAvailable && (
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/40 bg-primary/10 px-6 py-4">
-            <div>
-              <p className="font-serif text-lg font-semibold">
-                You're the first account here
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Claim the admin role to approve entries and manage the team.
-              </p>
-            </div>
-            <Button className="rounded-full" onClick={claim}>
-              Claim admin access
-            </Button>
-          </div>
-        )}
 
         {/* Stat cards */}
         <div className="mt-6 grid gap-3 sm:grid-cols-3">
@@ -389,18 +366,7 @@ export default function Dashboard() {
   );
 }
 
-function greetingWord(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return "morning";
-  if (hour < 18) return "afternoon";
-  return "evening";
-}
-
-function firstName(name: string): string {
-  return name.trim().split(/\s+/)[0];
-}
-
-/** Dialog to file a new entry. Kept close to the dashboard that triggers it. */
+/** Dialog to file a new entry. Kept close to the page that triggers it. */
 function NewEntryDialog({
   open,
   onOpenChange,

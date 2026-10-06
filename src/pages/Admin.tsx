@@ -117,7 +117,7 @@ export default function Admin() {
             This area is restricted to team admins.
           </h1>
           <Button asChild variant="outline" className="mt-6 rounded-full">
-            <Link to="/dashboard">Back to your ledger</Link>
+            <Link to="/dashboard">Back to tasks</Link>
           </Button>
         </div>
       </AppShell>

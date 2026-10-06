@@ -137,6 +137,27 @@ const schema = defineSchema(
       .index("by_label", ["label"])
       .index("by_position", ["position"]),
 
+    // One team to-do task shown on the task monitoring board (the dashboard).
+    // Every signed-in member can create tasks and move them along
+    // todo → in progress → done; only the creator or an admin can delete.
+    tasks: defineTable({
+      title: v.string(),
+      notes: v.optional(v.string()),
+      status: v.union(
+        v.literal("todo"),
+        v.literal("in_progress"),
+        v.literal("done"),
+      ),
+      due: v.optional(v.string()), // YYYY-MM-DD, shown as a due-date pill
+      completedAt: v.optional(v.number()), // set when status flips to done
+      completedBy: v.optional(v.id("users")),
+      createdBy: v.id("users"),
+      createdAt: v.number(),
+      updatedAt: v.number(),
+    })
+      .index("by_status", ["status"])
+      .index("by_createdBy", ["createdBy"]),
+
     // Singleton row tracking the Google Sheets mirror: when we last synced,
     // a fingerprint of the data we wrote, and the spreadsheet we target.
     // The fingerprint lets the scheduled sync skip work when nothing changed.
