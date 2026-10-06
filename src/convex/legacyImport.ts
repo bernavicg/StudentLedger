@@ -216,15 +216,20 @@ export const candidates = internalAction({
       const row = mon[r] ?? [];
       const name = cellText(row, 2);
       if (!/[a-zA-Z]/.test(name)) continue;
-      const caseNo = cellText(row, 1);
-      if (!/^\d{4,}$/.test(caseNo)) continue; // section labels lack case numbers
       if (/^total\b/i.test(name.trim())) continue;
+      const caseNo = cellText(row, 1);
       const remaining = cellNumber(row, 3);
       let monthlyHours = 0;
       for (let c = 5; c <= 15; c++) {
         const h = cellNumber(row, c);
         if (h && h > 0) monthlyHours += h;
       }
+      /*
+       * Real candidates need a case number OR monthly hours: section labels
+       * carry neither. Some students (recently added walk-ins) have no case
+       * number on the sheet yet but do have hours, and they belong here.
+       */
+      if (!/^\d{4,}$/.test(caseNo) && monthlyHours <= 0) continue;
       const sundayHours = sessions
         .filter((s) => namesMatch(s.student, name))
         .reduce((sum, s) => sum + s.count, 0);
@@ -253,7 +258,7 @@ export const candidates = internalAction({
         const cols: { col: number; day: string }[] = [];
         for (let c = 0; c < row.length; c++) {
           const text = cellText(row, c);
-          const dm = text.match(/^(\d{1,2})[\s\-]+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*/i);
+          const dm = text.match(/^(\d{1,2})[\s-]+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*/i);
           if (dm) {
             const months = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
             const mo = months.indexOf(dm[2].toLowerCase()) + 1;
@@ -419,7 +424,7 @@ function parseDay(value: Cell, fallbackYear: number, fallbackMonth: number): str
     return `${fallbackYear}-${String(m).padStart(2, "0")}-${monthDay[2].padStart(2, "0")}`;
   }
   // "7-Sep" style (day first), as used by the SUNDAY SESSIONS header.
-  const dayMonth = text.match(/^(\d{1,2})[\s\-]+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*/i);
+  const dayMonth = text.match(/^(\d{1,2})[\s-]+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*/i);
   if (dayMonth) {
     const months = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
     const m = months.indexOf(dayMonth[2].toLowerCase()) + 1;
@@ -723,7 +728,7 @@ async function buildPreview(
       const cols: { col: number; day: string }[] = [];
       for (let c = 0; c < row.length; c++) {
         const text = cellText(row, c);
-        const dm = text.match(/^(\d{1,2})[\s\-]+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*/i);
+        const dm = text.match(/^(\d{1,2})[\s-]+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*/i);
         if (dm) {
           const months = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
           const mo = months.indexOf(dm[2].toLowerCase()) + 1;
