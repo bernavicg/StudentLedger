@@ -35,6 +35,7 @@ import {
   ExternalLink,
   FileText,
   Inbox,
+  Pencil,
   Plus,
   Trash2,
   Upload,
@@ -82,6 +83,7 @@ export default function Invoices() {
     undefined,
   );
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [editTotalsOpen, setEditTotalsOpen] = useState(false);
 
   const all = invoices ?? [];
   // Students that actually have invoices — those become the filter chips.
@@ -312,7 +314,7 @@ export default function Invoices() {
                             </span>
                           )}
                         <span className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
-                          auto from the student's plan
+                          billing summary
                         </span>
                       </div>
                     </div>
@@ -341,15 +343,25 @@ export default function Invoices() {
                         </>
                       )}
                       {isAdmin && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-[#9c3d31] hover:bg-[#9c3d31]/10 hover:text-[#9c3d31]"
-                          onClick={() => handleDelete(current)}
-                        >
-                          <Trash2 className="mr-1.5 size-3.5" />
-                          Delete
-                        </Button>
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setEditTotalsOpen(true)}
+                          >
+                            <Pencil className="mr-1.5 size-3.5" />
+                            Edit totals
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-[#9c3d31] hover:bg-[#9c3d31]/10 hover:text-[#9c3d31]"
+                            onClick={() => handleDelete(current)}
+                          >
+                            <Trash2 className="mr-1.5 size-3.5" />
+                            Delete
+                          </Button>
+                        </>
                       )}
                     </div>
                   </div>
@@ -371,7 +383,149 @@ export default function Invoices() {
           </div>
         )}
       </div>
+
+      {/* Correct the auto-filled billing snapshot to match the document */}
+      {current && (
+        <EditTotalsDialog
+          key={current._id}
+          open={editTotalsOpen}
+          onOpenChange={setEditTotalsOpen}
+          invoice={current}
+        />
+      )}
     </AppShell>
+  );
+}
+
+/** Admin dialog: correct the auto-filled totals to match the PDF/DOC. */
+function EditTotalsDialog({
+  open,
+  onOpenChange,
+  invoice,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  invoice: InvoiceRow;
+}) {
+  const [sessions, setSessions] = useState(String(invoice.totalSessions));
+  const [hours, setHours] = useState(
+    invoice.totalHours !== null && invoice.totalHours !== undefined
+      ? String(invoice.totalHours)
+      : "",
+  );
+  const [amount, setAmount] = useState(
+    invoice.totalAmountCents !== null && invoice.totalAmountCents !== undefined
+      ? (invoice.totalAmountCents / 100).toFixed(2)
+      : "",
+  );
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const updateTotals = useMutation(api.invoices.updateTotals);
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const sessionsNum = Number.parseInt(sessions, 10);
+    if (!Number.isInteger(sessionsNum) || sessionsNum < 0) {
+      toast.error("Sessions must be a whole number.");
+      return;
+    }
+    const hoursVal =
+      hours.trim() === "" ? undefined : Number.parseFloat(hours.replace(/,/g, ""));
+    if (hoursVal !== undefined && (!Number.isFinite(hoursVal) || hoursVal < 0)) {
+      toast.error("Hours must be zero or more.");
+      return;
+    }
+    const amountVal =
+      amount.trim() === "" ? undefined : Number.parseFloat(amount.replace(/,/g, ""));
+    if (amountVal !== undefined && (!Number.isFinite(amountVal) || amountVal < 0)) {
+      toast.error("Amount must be zero or more.");
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await updateTotals({
+        invoiceId: invoice._id,
+        totalSessions: sessionsNum,
+        totalHours: hoursVal,
+        totalAmountCents:
+          amountVal !== undefined ? Math.round(amountVal * 100) : undefined,
+      });
+      toast.success("Invoice totals updated.");
+      onOpenChange(false);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Could not update totals.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="rounded-2xl sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="font-serif text-xl">
+            Edit invoice totals
+          </DialogTitle>
+          <DialogDescription>
+            The upload auto-filled these from {invoice.studentName}'s plan.
+            Match them to what the document says (e.g. "8×60" on the PDF).
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div className="grid gap-2">
+            <Label htmlFor="totals-sessions">Sessions</Label>
+            <Input
+              id="totals-sessions"
+              value={sessions}
+              onChange={(e) => setSessions(e.target.value)}
+              inputMode="numeric"
+              disabled={isSubmitting}
+              required
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="totals-hours">
+              Hours <span className="text-muted-foreground">(optional)</span>
+            </Label>
+            <Input
+              id="totals-hours"
+              value={hours}
+              onChange={(e) => setHours(e.target.value)}
+              inputMode="decimal"
+              placeholder="8"
+              disabled={isSubmitting}
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="totals-amount">
+              Total amount ($) <span className="text-muted-foreground">(optional)</span>
+            </Label>
+            <Input
+              id="totals-amount"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              inputMode="decimal"
+              placeholder="1,800.00"
+              disabled={isSubmitting}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" className="rounded-full" disabled={isSubmitting}>
+              {isSubmitting ? "Saving…" : "Save totals"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -552,7 +706,8 @@ function UploadDialog({
                 </div>
               </div>
               <p className="mt-2 text-[11px] text-muted-foreground">
-                Saved onto the invoice automatically — no typing needed.
+                Saved onto the invoice automatically — you can correct it
+                after upload to match the document.
               </p>
             </div>
           )}

@@ -1,13 +1,32 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 96.81 96.81">
+  <defs>
+    <linearGradient id="coverGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#417c66"/>
+      <stop offset="1" stop-color="#234839"/>
+    </linearGradient>
+    <linearGradient id="pageGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#faf7f0"/>
+      <stop offset="1" stop-color="#e2d7bf"/>
+    </linearGradient>
+    <linearGradient id="sheenGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.30"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
   <rect width="96.81" height="96.81" rx="20" fill="#2e5c4d"/>
-  <g stroke="#f5f1e8" stroke-width="6" stroke-linecap="round" fill="none">
-    <line x1="28" y1="36" x2="68" y2="36"/>
-    <line x1="28" y1="48.5" x2="62" y2="48.5"/>
-    <line x1="28" y1="61" x2="72" y2="61"/>
+  <rect x="24.5" y="31" width="50" height="42" rx="7" fill="#16241e" opacity="0.35"/>
+  <rect x="27" y="28.5" width="47" height="41" rx="6.5" fill="#cfc3a9"/>
+  <rect x="25.5" y="26.5" width="47" height="41" rx="6.5" fill="url(#pageGrad)"/>
+  <rect x="24" y="24.5" width="47" height="41" rx="6.5" fill="url(#coverGrad)"/>
+  <rect x="24" y="24.5" width="47" height="19" rx="6.5" fill="url(#sheenGrad)"/>
+  <g stroke="#f5f1e8" stroke-width="4.6" stroke-linecap="round" fill="none">
+    <line x1="34" y1="37" x2="60" y2="37"/>
+    <line x1="34" y1="47" x2="54" y2="47"/>
+    <line x1="34" y1="57" x2="60" y2="57"/>
   </g>
   <g fill="#f5f1e8">
-    <circle cx="72" cy="36" r="3.5"/>
-    <circle cx="66" cy="48.5" r="3.5"/>
-    <circle cx="76" cy="61" r="3.5"/>
+    <circle cx="62" cy="37" r="2.8"/>
+    <circle cx="56" cy="47" r="2.8"/>
+    <circle cx="62" cy="57" r="2.8"/>
   </g>
 </svg>

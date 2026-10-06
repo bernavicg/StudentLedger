@@ -119,6 +119,36 @@ export const list = query({
   },
 });
 
+/**
+ * Correct an invoice's billing snapshot (admin only). Upload auto-fills
+ * totals from the student's plan, but the PDF itself is the source of
+ * truth — this lets an admin fix the numbers to match the document.
+ */
+export const updateTotals = mutation({
+  args: {
+    invoiceId: v.id("invoices"),
+    totalSessions: v.number(),
+    totalHours: v.optional(v.number()),
+    totalAmountCents: v.optional(v.number()),
+  },
+  handler: async (ctx, { invoiceId, totalSessions, totalHours, totalAmountCents }) => {
+    await requireAdmin(ctx);
+    const invoice = await ctx.db.get(invoiceId);
+    if (!invoice) throw new Error("Invoice not found.");
+    if (!Number.isFinite(totalSessions) || totalSessions < 0) {
+      throw new Error("Sessions must be zero or more.");
+    }
+    await ctx.db.patch(invoiceId, {
+      totalSessions,
+      totalHours: totalHours !== undefined && totalHours >= 0 ? totalHours : undefined,
+      totalAmountCents:
+        totalAmountCents !== undefined && totalAmountCents >= 0
+          ? totalAmountCents
+          : undefined,
+    });
+  },
+});
+
 /** Delete one invoice and its stored file. Admin only. */
 export const remove = mutation({
   args: { invoiceId: v.id("invoices") },
