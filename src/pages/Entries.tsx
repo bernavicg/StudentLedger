@@ -56,6 +56,16 @@ import { toast } from "sonner";
 
 const PAGE_SIZE = 25;
 
+/** Student-relevant charge categories for the entry dialogs. */
+const CATEGORIES = [
+  "paper invoice",
+  "session fee",
+  "materials",
+  "assessment",
+  "transportation",
+  "other",
+] as const;
+
 /** Offered as one-tap presets in the entry description combobox. */
 const TITLE_PRESETS = ["Paper Invoice", "Polaris Billing"] as const;
 
@@ -377,7 +387,7 @@ function NewEntryDialog({
   const [title, setTitle] = useState("");
   const [rawAmount, setRawAmount] = useState("");
   // Every entry is a charge the student owes, so amounts are always money out.
-  const [category, setCategory] = useState("operations");
+  const [category, setCategory] = useState<string>("paper invoice");
   const [description, setDescription] = useState("");
   const [titleOpen, setTitleOpen] = useState(false);
   const [studentId, setStudentId] = useState<string>("none");
@@ -398,7 +408,7 @@ function NewEntryDialog({
   const reset = () => {
     setTitle("");
     setRawAmount("");
-    setCategory("operations");
+    setCategory("paper invoice");
     setDescription("");
     setStudentId("none");
     setProvider("");
@@ -545,13 +555,11 @@ function NewEntryDialog({
                 <SelectValue placeholder="Pick a category" />
               </SelectTrigger>
               <SelectContent className="rounded-xl">
-                {["operations", "equipment", "software", "services", "other"].map(
-                  (c) => (
-                    <SelectItem key={c} value={c}>
-                      {c}
-                    </SelectItem>
-                  ),
-                )}
+                {CATEGORIES.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {c}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

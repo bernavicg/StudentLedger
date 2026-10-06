@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { api } from "@/convex/_generated/api";
 import { useAction, useQuery } from "convex/react";
-import { AlertTriangle, Download, Loader2, Search } from "lucide-react";
+import { AlertTriangle, Download, Hash, Loader2, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -29,8 +29,10 @@ export default function ImportStudents() {
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [backfilling, setBackfilling] = useState(false);
   const readCandidates = useAction(api.sheetsPicker.readCandidates);
   const addFromSheets = useAction(api.sheetsPicker.addFromSheets);
+  const backfillCaseNumbers = useAction(api.sheetsPicker.backfillCaseNumbers);
   const existing = useQuery(api.students.list) ?? [];
 
   const load = async () => {
@@ -48,6 +50,8 @@ export default function ImportStudents() {
   };
 
   useEffect(() => {
+    // Initial load on mount; the setState calls inside load() are intended.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -72,6 +76,23 @@ export default function ImportStudents() {
       else next.add(name);
       return next;
     });
+  };
+
+  const handleBackfill = async () => {
+    setBackfilling(true);
+    try {
+      const result = await backfillCaseNumbers({});
+      toast.success(
+        `${result.updated} case number${result.updated === 1 ? "" : "s"} saved` +
+          (result.unmatched.length > 0
+            ? ` · ${result.unmatched.length} not enrolled yet`
+            : ""),
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Backfill failed.");
+    } finally {
+      setBackfilling(false);
+    }
   };
 
   const addSelected = async () => {
@@ -108,10 +129,25 @@ export default function ImportStudents() {
               who to add to the Students page.
             </p>
           </div>
-          <Button onClick={load} disabled={loading} variant="outline" className="gap-2">
-            {loading ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
-            Refresh from sheets
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              onClick={handleBackfill}
+              disabled={backfilling}
+              variant="outline"
+              className="gap-2"
+            >
+              {backfilling ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Hash className="size-4" />
+              )}
+              Backfill case no.
+            </Button>
+            <Button onClick={load} disabled={loading} variant="outline" className="gap-2">
+              {loading ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
+              Refresh from sheets
+            </Button>
+          </div>
         </div>
 
         {loadError && (

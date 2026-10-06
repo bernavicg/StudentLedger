@@ -50,13 +50,15 @@ import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 
+/** Student-relevant charge categories for the edit dialog. */
 const CATEGORIES = [
-  "operations",
-  "equipment",
-  "software",
-  "services",
+  "paper invoice",
+  "session fee",
+  "materials",
+  "assessment",
+  "transportation",
   "other",
-];
+] as const;
 
 /** A status action available to the current viewer. */
 type StatusAction = {
@@ -102,7 +104,7 @@ export default function EntryDetail() {
   const [editRawAmount, setEditRawAmount] = useState("");
   const [editDirection, setEditDirection] = useState<"in" | "out">("out");
   const [editDescription, setEditDescription] = useState("");
-  const [editCategory, setEditCategory] = useState("operations");
+  const [editCategory, setEditCategory] = useState<string>("paper invoice");
 
   if (entry === undefined) {
     // A malformed id never loads; show not-found instead of a stuck skeleton.

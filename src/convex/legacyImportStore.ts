@@ -265,6 +265,40 @@ export const apply = internalMutation({
   },
 });
 
+/**
+ * One-click backfill: store the case numbers from the legacy roster onto
+ * already-enrolled students, matched by normalized name. Only fills or
+ * corrects a caseNo — students enrolled before the field existed get their
+ * number from the sheets in one shot.
+ */
+export const backfillCaseNumbers = internalMutation({
+  args: {
+    students: v.array(v.object({ name: v.string(), caseNo: v.string() })),
+  },
+  handler: async (ctx, { students }) => {
+    const existing = await ctx.db.query("students").collect();
+    const byName = new Map(
+      existing.map((s) => [s.name.toLowerCase().trim(), s]),
+    );
+    let updated = 0;
+    const unmatched: string[] = [];
+    for (const s of students) {
+      const student = byName.get(s.name.toLowerCase().trim());
+      if (!student) {
+        unmatched.push(s.name);
+        continue;
+      }
+      if (student.caseNo === s.caseNo) continue;
+      await ctx.db.patch(student._id, {
+        caseNo: s.caseNo,
+        updatedAt: Date.now(),
+      });
+      updated++;
+    }
+    return { updated, unmatched };
+  },
+});
+
 /** Fallback actor when no admin exists yet (first run in a fresh deployment). */
 async function ensureAnyUser(
   ctx: { db: { query: (name: "users") => { first: () => Promise<{ _id: Id<"users"> } | null> } } },

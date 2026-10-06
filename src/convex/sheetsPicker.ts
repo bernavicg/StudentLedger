@@ -141,3 +141,41 @@ export const addFromSheets = action({
     };
   },
 });
+
+/**
+ * One-click backfill: copy every roster case number onto the already-
+ * enrolled students whose rows predate the field. Admin only; students on
+ * the roster but not yet enrolled are reported back unmatched.
+ */
+export const backfillCaseNumbers = action({
+  args: {},
+  handler: async (ctx) => {
+    const caller = await ctx.runQuery(
+      makeFunctionReference<
+        "query",
+        Record<string, never>,
+        { role: "admin" | "member" | "user"; userId: string }
+      >("sheetsInternal:callerRole"),
+      {},
+    );
+    if (caller.role !== "admin") throw new Error("Only admins can do that.");
+
+    const data: CandidatesResult = await ctx.runAction(candidatesRef, {});
+    const roster = data.candidates
+      .filter((c) => /^\d{4,}$/.test(c.caseNo))
+      .map((c) => ({ name: c.name, caseNo: c.caseNo }));
+    if (roster.length === 0) {
+      return { updated: 0, unmatched: [] as string[], warnings: data.warnings };
+    }
+
+    const result = await ctx.runMutation(
+      makeFunctionReference<
+        "mutation",
+        { students: { name: string; caseNo: string }[] },
+        { updated: number; unmatched: string[] }
+      >("legacyImportStore:backfillCaseNumbers"),
+      { students: roster },
+    );
+    return { ...result, warnings: data.warnings };
+  },
+});

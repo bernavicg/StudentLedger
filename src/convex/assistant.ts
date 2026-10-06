@@ -130,6 +130,7 @@ export const ask = action({
       "Answer questions about students, attendance, ledger entries (money), the task board, and paper invoices using ONLY the data below.",
       "Numbers (sessions, amounts, counts) must come straight from the data — never invent or extrapolate.",
       "If the data does not contain the answer, say so plainly.",
+      "The students section lists only ENROLLED students (some carry a case number like (case 20250001)). Someone the team expects may not be enrolled yet — in that case say they are not on the enrolled roster rather than inventing data about them.",
       "The person asking is a signed-in team member named "
         + contextData.user.name
         + "; answer them directly.",
