@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { api } from "@/convex/_generated/api";
 import { cn } from "@/lib/utils";
 import { useAction, useQuery } from "convex/react";
-import { Bot, Send, Sparkles, User } from "lucide-react";
+import { Bot, Search, Send, Sparkles, User } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 type Message = { role: "user" | "assistant"; text: string };
@@ -21,6 +21,10 @@ const SUGGESTIONS = [
 /** Per-student chat focus: the AI then answers from one student's history. */
 type StudentOption = { _id: string; name: string };
 
+/**
+ * Focus chips for the roster, with a search box once the roster outgrows
+ * the chip row — type "maya" to find her instead of scrolling.
+ */
 function StudentFocus({
   students,
   activeId,
@@ -30,39 +34,71 @@ function StudentFocus({
   activeId: string | null;
   onPick: (id: string | null) => void;
 }) {
+  const [query, setQuery] = useState("");
   if (students.length === 0) return null;
+
+  const q = query.trim().toLowerCase();
+  const matches = q
+    ? students.filter((s) => s.name.toLowerCase().includes(q))
+    : students;
+  const shown = matches.slice(0, q ? 30 : 12);
+
   return (
-    <div className="mt-4 flex flex-wrap items-center gap-1.5">
-      <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-        Focus:
-      </span>
-      <button
-        type="button"
-        onClick={() => onPick(null)}
-        className={cn(
-          "rounded-full px-3 py-1 text-xs transition-colors",
-          activeId === null
-            ? "bg-primary font-medium text-primary-foreground"
-            : "border border-border text-muted-foreground hover:bg-accent hover:text-foreground",
-        )}
-      >
-        All students
-      </button>
-      {students.slice(0, 12).map((student) => (
+    <div className="mt-4">
+      {students.length > 12 && (
+        <div className="relative mb-2 max-w-xs">
+          <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search students to focus…"
+            className="h-9 pl-9 text-sm"
+          />
+        </div>
+      )}
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+          Focus:
+        </span>
         <button
-          key={student._id}
           type="button"
-          onClick={() => onPick(student._id)}
+          onClick={() => onPick(null)}
           className={cn(
-            "max-w-[12rem] truncate rounded-full px-3 py-1 text-xs transition-colors",
-            activeId === student._id
+            "rounded-full px-3 py-1 text-xs transition-colors",
+            activeId === null
               ? "bg-primary font-medium text-primary-foreground"
               : "border border-border text-muted-foreground hover:bg-accent hover:text-foreground",
           )}
         >
-          {student.name}
+          All students
         </button>
-      ))}
+        {shown.map((student) => (
+          <button
+            key={student._id}
+            type="button"
+            onClick={() => onPick(student._id)}
+            className={cn(
+              "max-w-[12rem] truncate rounded-full px-3 py-1 text-xs transition-colors",
+              activeId === student._id
+                ? "bg-primary font-medium text-primary-foreground"
+                : "border border-border text-muted-foreground hover:bg-accent hover:text-foreground",
+            )}
+          >
+            {student.name}
+          </button>
+        ))}
+        {matches.length > shown.length && (
+          <span className="text-xs text-muted-foreground">
+            +{matches.length - shown.length} more — search to narrow down
+          </span>
+        )}
+        {q && matches.length === 0 && (
+          <span className="text-xs text-muted-foreground">
+            No enrolled student matches "{query}" — enroll them from Import
+            first.
+          </span>
+        )}
+      </div>
     </div>
   );
 }
