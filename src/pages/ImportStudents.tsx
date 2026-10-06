@@ -33,7 +33,7 @@ export default function ImportStudents() {
   const readCandidates = useAction(api.sheetsPicker.readCandidates);
   const addFromSheets = useAction(api.sheetsPicker.addFromSheets);
   const backfillCaseNumbers = useAction(api.sheetsPicker.backfillCaseNumbers);
-  const existing = useQuery(api.students.list) ?? [];
+  const existing = useQuery(api.students.list);
 
   const load = async () => {
     setLoading(true);
@@ -57,7 +57,12 @@ export default function ImportStudents() {
   }, []);
 
   const enrolled = useMemo(
-    () => new Set(existing.map((s: { name: string }) => s.name.toLowerCase().trim())),
+    () =>
+      new Set(
+        (existing ?? []).map((s: { name: string }) =>
+          s.name.toLowerCase().trim(),
+        ),
+      ),
     [existing],
   );
 
