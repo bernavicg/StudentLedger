@@ -170,6 +170,13 @@ const schema = defineSchema(
       fileId: v.id("_storage"),
       mimeType: v.string(), // resolved on upload (pdf / doc / docx)
       sizeBytes: v.number(),
+      // Billing snapshot, auto-computed from the student's plan at upload
+      // time: authorized sessions, their hours, and the total amount
+      // (sessions × rate). Frozen here so the invoice stays meaningful even
+      // after the plan or attendance changes.
+      totalSessions: v.number(),
+      totalHours: v.optional(v.number()),
+      totalAmountCents: v.optional(v.number()),
       createdBy: v.id("users"),
       createdAt: v.number(),
     })

@@ -60,6 +60,10 @@ export type InvoiceRow = {
   fileName: string;
   caseNo?: string | null;
   createdAt: number;
+  // Billing snapshot auto-computed from the student's plan at upload time.
+  totalSessions?: number | null;
+  totalHours?: number | null;
+  totalAmountCents?: number | null;
 };
 
 /**
@@ -83,6 +87,11 @@ export function money(amount: number): string {
 
 function dayOf(timestamp: number): string {
   return new Date(timestamp).toISOString().slice(0, 10);
+}
+
+/** Hours label: "40 h" or "22.5 h". */
+function hoursLabel(hours: number): string {
+  return Number.isInteger(hours) ? `${hours} h` : `${hours.toFixed(1)} h`;
 }
 
 /** Ledger section: totals over the full scope plus the newest entries. */
@@ -141,8 +150,14 @@ export function summarizeInvoices(invoices: InvoiceRow[]): string {
   ];
   for (const invoice of invoices.slice(0, ASSISTANT_LIMITS.maxInvoices)) {
     const casePart = invoice.caseNo ? ` (case ${invoice.caseNo})` : "";
+    const totals =
+      invoice.totalSessions != null
+        ? `, ${invoice.totalSessions} sessions` +
+          (invoice.totalHours != null ? ` / ${hoursLabel(invoice.totalHours)}` : "") +
+          (invoice.totalAmountCents != null ? ` / ${money(invoice.totalAmountCents)}` : "")
+        : "";
     lines.push(
-      `- ${dayOf(invoice.createdAt)} ${invoice.title} — student ${invoice.studentName}${casePart}, file ${invoice.fileName}`,
+      `- ${dayOf(invoice.createdAt)} ${invoice.title} — student ${invoice.studentName}${casePart}, file ${invoice.fileName}${totals}`,
     );
   }
   return lines.join("\n");

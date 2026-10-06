@@ -21,7 +21,7 @@ import {
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useAuth } from "@/hooks/use-auth";
-import { formatDate } from "@/lib/format";
+import { formatCentavos, formatDate } from "@/lib/format";
 import {
   formatBytes,
   invoiceViewerUrl,
@@ -52,6 +52,10 @@ type InvoiceRow = {
   fileName: string;
   mimeType: string;
   sizeBytes: number;
+  // Billing snapshot auto-computed from the student's plan at upload.
+  totalSessions: number;
+  totalHours?: number | null;
+  totalAmountCents?: number | null;
   url?: string;
   createdAt: number;
   createdBy: Id<"users">;
@@ -60,6 +64,11 @@ type InvoiceRow = {
 
 /** Keep uploads sensible; Convex storage itself allows far more. */
 const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
+
+/** Hours label: "40 h" or "22.5 h". */
+function formatHours(hours: number): string {
+  return Number.isInteger(hours) ? `${hours} h` : `${hours.toFixed(1)} h`;
+}
 
 export default function Invoices() {
   const { user } = useAuth();
@@ -237,6 +246,15 @@ export default function Invoices() {
                     <p className="mt-1 truncate text-xs text-muted-foreground">
                       {invoice.studentName}
                       {invoice.caseNo ? ` · case ${invoice.caseNo}` : ""} ·{" "}
+                      {invoice.totalSessions} sessions ·{" "}
+                      {invoice.totalHours !== null &&
+                      invoice.totalHours !== undefined
+                        ? `${formatHours(invoice.totalHours)} · `
+                        : ""}
+                      {invoice.totalAmountCents !== null &&
+                      invoice.totalAmountCents !== undefined
+                        ? `${formatCentavos(invoice.totalAmountCents)} · `
+                        : ""}
                       {formatBytes(invoice.sizeBytes)}{" "}
                       · {formatDate(invoice.createdAt)}
                     </p>
@@ -276,6 +294,27 @@ export default function Invoices() {
                         uploaded {formatDate(current.createdAt)} by{" "}
                         {current.uploaderName}
                       </p>
+                      {/* Billing snapshot, auto-filled at upload time */}
+                      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                        <span className="rounded-full bg-secondary/60 px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+                          {current.totalSessions} sessions
+                        </span>
+                        {current.totalHours !== null &&
+                          current.totalHours !== undefined && (
+                            <span className="rounded-full bg-secondary/60 px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+                              {formatHours(current.totalHours)}
+                            </span>
+                          )}
+                        {current.totalAmountCents !== null &&
+                          current.totalAmountCents !== undefined && (
+                            <span className="rounded-full bg-[#2e5c4d]/10 px-2.5 py-0.5 text-[11px] font-medium text-[#2e5c4d]">
+                              {formatCentavos(current.totalAmountCents)}
+                            </span>
+                          )}
+                        <span className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
+                          auto from the student's plan
+                        </span>
+                      </div>
                     </div>
                     <div className="flex items-center gap-1.5">
                       {current.url && (
@@ -359,6 +398,8 @@ function UploadDialog({
     id: s._id,
     name: s.name,
   }));
+  // The picked student's plan drives the auto-filled billing preview.
+  const selectedStudent = (students ?? []).find((s) => s._id === studentId);
 
   const reset = () => {
     setStudentId("none");
@@ -473,6 +514,48 @@ function UploadDialog({
               </p>
             )}
           </div>
+
+          {/* Billing snapshot preview: auto-computed, nothing to type */}
+          {selectedStudent && (
+            <div className="rounded-xl border border-border bg-secondary/50 p-4">
+              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                Auto-filled from {selectedStudent.name}'s plan
+              </p>
+              <div className="mt-2 grid grid-cols-3 gap-2 text-center">
+                <div>
+                  <p className="font-serif text-lg font-semibold">
+                    {selectedStudent.totalSessions}
+                  </p>
+                  <p className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
+                    sessions
+                  </p>
+                </div>
+                <div>
+                  <p className="font-serif text-lg font-semibold">
+                    {selectedStudent.approvedHours !== null
+                      ? formatHours(selectedStudent.approvedHours)
+                      : "—"}
+                  </p>
+                  <p className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
+                    hours
+                  </p>
+                </div>
+                <div>
+                  <p className="font-serif text-lg font-semibold">
+                    {selectedStudent.maxAuthorizedAmountCents !== null
+                      ? formatCentavos(selectedStudent.maxAuthorizedAmountCents)
+                      : "—"}
+                  </p>
+                  <p className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
+                    total amount
+                  </p>
+                </div>
+              </div>
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                Saved onto the invoice automatically — no typing needed.
+              </p>
+            </div>
+          )}
 
           <div className="grid gap-2">
             <Label htmlFor="invoice-file">File</Label>

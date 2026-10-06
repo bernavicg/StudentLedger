@@ -93,6 +93,9 @@ export const gatherContext = internalQuery({
         fileName: i.fileName,
         caseNo: i.caseNo ?? null,
         createdAt: i.createdAt,
+        totalSessions: i.totalSessions,
+        totalHours: i.totalHours ?? null,
+        totalAmountCents: i.totalAmountCents ?? null,
       })),
     };
   },

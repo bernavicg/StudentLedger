@@ -97,14 +97,17 @@ describe("summarizeInvoices", () => {
       fileName: "invoice.pdf",
       caseNo: "CASE-2026-014",
       createdAt: Date.UTC(2026, 9, 6),
+      totalSessions: 40,
+      totalHours: 40,
+      totalAmountCents: 180000,
     },
   ];
 
-  test("lists invoices with student and case number", () => {
+  test("lists invoices with student, case number, and billing totals", () => {
     const text = summarizeInvoices(invoices);
     expect(text).toContain("1 paper invoices on file");
     expect(text).toContain("student Mira Chen (case CASE-2026-014)");
-    expect(text).toContain("file invoice.pdf");
+    expect(text).toContain("file invoice.pdf, 40 sessions / 40 h / $1,800.00");
   });
 
   test("says when there are no invoices", () => {

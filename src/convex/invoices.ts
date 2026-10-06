@@ -48,6 +48,18 @@ export const save = mutation({
     }
 
     const trimmedName = args.fileName.trim() || "invoice";
+
+    // Billing snapshot auto-computed from the student's plan at upload time.
+    const totalSessions = student.totalSessions;
+    const totalHours =
+      student.authorizedMinutes !== undefined
+        ? (student.totalSessions * student.authorizedMinutes) / 60
+        : undefined;
+    const totalAmountCents =
+      student.ratePerSessionCents !== undefined
+        ? student.totalSessions * student.ratePerSessionCents
+        : undefined;
+
     return await ctx.db.insert("invoices", {
       studentId: args.studentId,
       title: args.title?.trim() || trimmedName.replace(/\.[^.]+$/, ""),
@@ -56,6 +68,9 @@ export const save = mutation({
       fileId: args.storageId,
       mimeType: args.mimeType,
       sizeBytes: args.sizeBytes,
+      totalSessions,
+      totalHours,
+      totalAmountCents,
       createdBy: admin.userId,
       createdAt: Date.now(),
     });
@@ -89,6 +104,9 @@ export const list = query({
         studentName: studentNames.get(invoice.studentId) ?? "Unknown student",
         caseNo: invoice.caseNo,
         fileName: invoice.fileName,
+        totalSessions: invoice.totalSessions,
+        totalHours: invoice.totalHours ?? null,
+        totalAmountCents: invoice.totalAmountCents ?? null,
         mimeType: invoice.mimeType,
         sizeBytes: invoice.sizeBytes,
         url: url ?? undefined,
