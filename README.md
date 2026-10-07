@@ -52,7 +52,8 @@ links (e.g. `/docs`) are handled by the shipped `public/_redirects`
   student and read it in an embedded viewer — view-only for the team.
 - Students, providers, and attendance tracking
 - Google Sheets mirror of the whole ledger
-- **Docs** (admin-curated): the school-year Google Docs (September–June)
+- **Docs** (admin-curated): the school-year Google Docs (September 2025 –
+  December 2026)
   embedded in one live viewer — paste a doc URL per month and Google renders
   it exactly as shared, original colors and formatting included.
 - **AI Assistant**: ask about anything in the app — students (with case

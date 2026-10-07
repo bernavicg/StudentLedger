@@ -26,21 +26,43 @@ import {
   RefreshCw,
   Trash2,
 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
+/** Keep in sync with SCHOOL_YEAR_MONTHS in convex/gdocs.ts. */
 const MONTHS = [
-  "September",
-  "October",
-  "November",
-  "December",
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
+  "September 2025",
+  "October 2025",
+  "November 2025",
+  "December 2025",
+  "January 2026",
+  "February 2026",
+  "March 2026",
+  "April 2026",
+  "May 2026",
+  "June 2026",
+  "July 2026",
+  "August 2026",
+  "September 2026",
+  "October 2026",
+  "November 2026",
+  "December 2026",
 ] as const;
+
+/** "September 2026" → "Sep 26", so same-month pills stay distinguishable. */
+function pillLabel(label: string) {
+  const [monthName, year] = label.split(" ");
+  return year === undefined
+    ? monthName.slice(0, 3)
+    : `${monthName.slice(0, 3)} ${year.slice(2)}`;
+}
+
+const DEFAULT_MONTH =
+  MONTHS.find(
+    (m) =>
+      m ===
+      `${new Date().toLocaleString("en-US", { month: "long" })} ${new Date().getFullYear()}`,
+  ) ?? MONTHS[0];
 
 type MonthDoc = {
   _id: string;
@@ -53,7 +75,7 @@ function docFor(docs: MonthDoc[] | undefined, label: string) {
 }
 
 /**
- * Docs: the school-year Google Docs (September–June) in one live viewer,
+ * Docs: the school-year Google Docs (Sep 2025 – Dec 2026) in one live viewer,
  * replacing the old Scrapes page. Same pattern as the Sheets page — paste a
  * URL or id, and Google renders the doc exactly as shared, colors included.
  */
@@ -64,8 +86,17 @@ export default function Docs() {
   const docs = useQuery(api.gdocs.list);
   const setDoc = useMutation(api.gdocs.set);
   const removeDoc = useMutation(api.gdocs.remove);
+  const migrateLabels = useMutation(api.gdocs.migrateLabels);
 
-  const [month, setMonth] = useState<string>("September");
+  // Rename legacy plain-month labels ("September" → "September 2025") once
+  // per load. Idempotent server-side; a failure is harmless because list()
+  // normalizes old labels for display anyway.
+  useEffect(() => {
+    if (isLoading) return;
+    void migrateLabels({}).catch(() => undefined);
+  }, [isLoading, migrateLabels]);
+
+  const [month, setMonth] = useState<string>(DEFAULT_MONTH);
   const [url, setUrl] = useState("");
   const [saving, setSaving] = useState(false);
   const [removing, setRemoving] = useState<string | null>(null);
@@ -127,8 +158,9 @@ export default function Docs() {
             Docs
           </h1>
           <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-            Ang mga Google Docs sa school year (September hangtod June), live
-            gikan sa Google — same colors ug formatting sama sa original.
+            Ang mga Google Docs sa school year (September 2025 hangtod
+            December 2026), live gikan sa Google — same colors ug formatting
+            sama sa original.
           </p>
         </header>
 
@@ -147,7 +179,7 @@ export default function Docs() {
                     : "rounded-full border border-border px-3.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                 }
               >
-                {m.slice(0, 3)}
+                {pillLabel(m)}
                 {saved && (
                   <span
                     className="ml-1.5 inline-block size-1.5 rounded-full bg-[#2e5c4d]"

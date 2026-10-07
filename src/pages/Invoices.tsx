@@ -21,7 +21,8 @@ import {
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useAuth } from "@/hooks/use-auth";
-import { formatCentavos, formatDate } from "@/lib/format";
+import { formatCentavos, formatDate, formatDateTime } from "@/lib/format";
+import { useUserTimezone } from "@/hooks/use-user-timezone";
 import {
   formatBytes,
   invoiceViewerUrl,
@@ -73,6 +74,7 @@ function formatHours(hours: number): string {
 
 export default function Invoices() {
   const { user } = useAuth();
+  const userTimezone = useUserTimezone();
   const isAdmin = user?.role === "admin";
 
   const invoices = useQuery(api.invoices.list);
@@ -258,7 +260,7 @@ export default function Invoices() {
                         ? `${formatCentavos(invoice.totalAmountCents)} · `
                         : ""}
                       {formatBytes(invoice.sizeBytes)}{" "}
-                      · {formatDate(invoice.createdAt)}
+                      · {formatDateTime(invoice.createdAt, userTimezone)}
                     </p>
                   </button>
                 </li>
@@ -292,8 +294,7 @@ export default function Invoices() {
                       <p className="mt-0.5 truncate text-xs text-muted-foreground">
                         {current.studentName}
                         {current.caseNo ? ` · case ${current.caseNo}` : ""} ·{" "}
-                        {current.fileName} · {formatBytes(current.sizeBytes)} ·{" "}
-                        uploaded {formatDate(current.createdAt)} by{" "}
+                        {current.fileName} · {formatBytes(current.sizeBytes)} ·{" "}                        uploaded {formatDateTime(current.createdAt, userTimezone)} by {" "}
                         {current.uploaderName}
                       </p>
                       {/* Billing snapshot, auto-filled at upload time */}

@@ -26,14 +26,13 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
-import {
-  amountTone,
+import type { Id } from "@/convex/_generated/dataModel";import { amountTone,
   formatCentavos,
   formatDateTime,
   STATUS_STYLES,
   timeAgo,
 } from "@/lib/format";
+import { useUserTimezone } from "@/hooks/use-user-timezone";
 import { cn } from "@/lib/utils";
 import { useMutation, useQuery } from "convex/react";
 import {
@@ -163,6 +162,7 @@ export default function EntryDetail() {
 
   const isOwner = entry.mine;
   const isAdmin = entry.viewerRole === "admin";
+  const userTimezone = useUserTimezone();
 
   // Actions depend on the viewer: admins settle; owners manage their own
   // pending entries; everyone else just watches.
@@ -313,7 +313,7 @@ export default function EntryDetail() {
             </span>
           </div>
           <p className="mt-1.5 text-sm text-muted-foreground">
-            Filed by {entry.authorName} · {formatDateTime(entry.createdAt)}
+            Filed by {entry.authorName} · {formatDateTime(entry.createdAt, userTimezone)}
           </p>
           {entry.status === "rejected" && entry.reviewNote && (
             <p className="mt-3 rounded-xl bg-[#9c3d31]/10 px-4 py-3 text-sm text-[#9c3d31]">
@@ -370,7 +370,7 @@ export default function EntryDetail() {
                 <span className="text-muted-foreground">
                   Last updated:{" "}
                   <span className="text-foreground">
-                    {formatDateTime(entry.updatedAt)}
+                    {formatDateTime(entry.updatedAt, userTimezone)}
                   </span>
                 </span>
               </div>
@@ -381,7 +381,7 @@ export default function EntryDetail() {
                   <div className="flex-1">
                     <p className="text-sm font-medium">
                       {entry.paidAt !== undefined
-                        ? `Student paid · ${formatDateTime(entry.paidAt)}`
+                        ? `Student paid · ${formatDateTime(entry.paidAt, userTimezone)}`
                         : "Student hasn't paid yet"}
                     </p>
                   </div>
@@ -562,13 +562,13 @@ export default function EntryDetail() {
                 <div className="flex justify-between gap-2">
                   <span>Created</span>
                   <span className="text-foreground/80">
-                    {formatDateTime(entry.createdAt)}
+                    {formatDateTime(entry.createdAt, userTimezone)}
                   </span>
                 </div>
                 <div className="flex justify-between gap-2">
                   <span>Updated</span>
                   <span className="text-foreground/80">
-                    {formatDateTime(entry.updatedAt)}
+                    {formatDateTime(entry.updatedAt, userTimezone)}
                   </span>
                 </div>
               </CardContent>

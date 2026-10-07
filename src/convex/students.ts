@@ -125,6 +125,19 @@ export const list = query({
       byStudent.set(record.studentId, bucket);
     }
 
+    // Approved charges per student: sum of entry amounts with status "approved".
+    // Charges are stored as negative amounts (money out), so take absolute value.
+    const entries = await ctx.db.query("entries").collect();
+    const approvedByStudent = new Map<string, number>();
+    for (const entry of entries) {
+      if (entry.status !== "approved") continue;
+      // Charges have negative amount; take absolute value for the total.
+      const amount = Math.abs(entry.amount);
+      if (amount === 0) continue;
+      const prev = approvedByStudent.get(entry.studentId ?? "") ?? 0;
+      approvedByStudent.set(entry.studentId ?? "", prev + amount);
+    }
+
     return students.map((student) => {
       const records = byStudent.get(student._id) ?? [];
       // Sessions consumed scale with duration (60 min on a 30-min plan = 2).
@@ -149,6 +162,13 @@ export const list = query({
       },
       "",
     );
+      const approvedCharges = approvedByStudent.get(student._id) ?? 0;
+      // Derived cap: authorized sessions × rate per session.
+      const maxAuthorizedAmountCents =
+        student.ratePerSessionCents !== null &&
+        student.ratePerSessionCents !== undefined
+          ? student.totalSessions * student.ratePerSessionCents
+          : null;
       return {
         _id: student._id,
         name: student.name,
@@ -158,11 +178,7 @@ export const list = query({
         totalSessions: student.totalSessions,
         ratePerSessionCents: student.ratePerSessionCents ?? null,
         authorizedMinutes: student.authorizedMinutes ?? null,
-        // Derived cap: authorized sessions × rate per session.
-        maxAuthorizedAmountCents:
-          student.ratePerSessionCents !== null && student.ratePerSessionCents !== undefined
-            ? student.totalSessions * student.ratePerSessionCents
-            : null,
+        maxAuthorizedAmountCents,
         // Derived approved hours: 30-min sessions count as half, 60-min as full.
         approvedHours:
           student.authorizedMinutes != null
@@ -179,10 +195,10 @@ export const list = query({
                 0,
               )
             : null,
-        // Money left of the authorized cap: remaining sessions x rate.
+        // Money left of the authorized cap: max cap minus approved charges.
         remainingBalanceCents:
-          student.ratePerSessionCents != null
-            ? Math.max(student.totalSessions - used, 0) * student.ratePerSessionCents
+          maxAuthorizedAmountCents != null
+            ? Math.max(maxAuthorizedAmountCents - approvedCharges, 0)
             : null,
         // How many marks are still waiting on an admin.
         pendingReviewCount: records.filter(

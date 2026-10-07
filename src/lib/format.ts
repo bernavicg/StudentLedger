@@ -17,15 +17,22 @@ export function formatDate(timestamp: number): string {
   });
 }
 
-/** Full date-time for detail views. */
-export function formatDateTime(timestamp: number): string {
-  return new Date(timestamp).toLocaleString("en-PH", {
+/** Full date-time for detail views, 12-hour format with timezone (e.g. "Sep 29, 2026, 3:45 PM PHT").
+ *  If `timezone` is provided, the time is displayed in that timezone instead of the browser's local time. */
+export function formatDateTime(timestamp: number, timezone?: string): string {
+  const options: Intl.DateTimeFormatOptions = {
     month: "short",
     day: "numeric",
     year: "numeric",
     hour: "numeric",
     minute: "2-digit",
-  });
+    hour12: true,
+    timeZoneName: "short",
+  };
+  if (timezone) {
+    options.timeZone = timezone;
+  }
+  return new Date(timestamp).toLocaleString("en-PH", options);
 }
 
 /** Relative time for comment threads. */

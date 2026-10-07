@@ -26,6 +26,7 @@ const Assistant = lazy(() => import("./pages/Assistant.tsx"));
 const Admin = lazy(() => import("./pages/Admin.tsx"));
 const ImportStudents = lazy(() => import("./pages/ImportStudents.tsx"));
 const Calendar = lazy(() => import("./pages/Calendar.tsx"));
+const Settings = lazy(() => import("./pages/Settings.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 // Simple loading fallback for route transitions
@@ -269,6 +270,14 @@ createRoot(document.getElementById("root")!).render(
                 element={
                   <RequireAuth>
                     <Admin />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <RequireAuth>
+                    <Settings />
                   </RequireAuth>
                 }
               />

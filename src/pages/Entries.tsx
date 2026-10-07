@@ -1,10 +1,10 @@
-import { AppShell } from "@/components/AppShell";
-import {
-  amountTone,
+import { AppShell } from "@/components/AppShell";import { amountTone,
   formatCentavos,
   formatDate,
+  formatDateTime,
   STATUS_STYLES,
 } from "@/lib/format";
+import { useUserTimezone } from "@/hooks/use-user-timezone";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -106,6 +106,7 @@ const FILTERS: { value: StatusFilter; label: string }[] = [
 
 export default function Entries() {
   const { user } = useAuth();
+  const userTimezone = useUserTimezone();
 
   const {
     results,
@@ -323,7 +324,7 @@ export default function Entries() {
                           ? `${entry.studentName} · `
                           : ""}
                         {entry.category ?? "uncategorized"} · filed by{" "}
-                        {entry.authorName} · {formatDate(entry.createdAt)}
+                        {entry.authorName} · {formatDateTime(entry.createdAt, userTimezone)}
                       </p>
                     </div>
                     <span

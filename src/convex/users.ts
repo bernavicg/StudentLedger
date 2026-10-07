@@ -128,3 +128,28 @@ export const removeFromTeam = mutation({
     await ctx.db.patch(userId, { isAnonymous: true });
   },
 });
+
+// User settings: get/set per-user preferences.
+export const getSettings = query({
+  args: { userId: v.id("users") },
+  handler: async (ctx, { userId }) => {
+    const caller = await getAuthUserId(ctx);
+    if (caller === null) throw new Error("Sign in to continue.");
+    if (caller !== userId) throw new Error("Not allowed.");
+    const user = await ctx.db.get(userId);
+    if (!user) throw new Error("User not found");
+    return {
+      timezone: user.timezone ?? "",
+    };
+  },
+});
+
+export const setTimezone = mutation({
+  args: { userId: v.id("users"), timezone: v.string() },
+  handler: async (ctx, { userId, timezone }) => {
+    const caller = await getAuthUserId(ctx);
+    if (caller === null) throw new Error("Sign in to continue.");
+    if (caller !== userId) throw new Error("You can only change your own settings.");
+    await ctx.db.patch(userId, { timezone });
+  },
+});

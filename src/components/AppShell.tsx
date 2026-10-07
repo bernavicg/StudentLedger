@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";import { ChevronDown,
   ClipboardCheck,
   Download,
   FileText,
+  Globe,
   GraduationCap,
   ListTodo,
   Receipt,
@@ -46,7 +47,8 @@ export function AppShell({
     | "import"
     | "assistant"
     | "admin"
-    | "calendar";
+    | "calendar"
+    | "settings";
 }) {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
@@ -246,6 +248,18 @@ export function AppShell({
           >
             <Calendar className="size-4" />
             Jiwish Calendar
+          </Link>
+          <Link
+            to="/settings"
+            className={cn(
+              "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors",
+              active === "settings"
+                ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
+                : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground",
+            )}
+          >
+            <Globe className="size-4" />
+            Settings
           </Link>
         </nav>
 
@@ -473,6 +487,18 @@ export function AppShell({
           >
             <Calendar className="size-3.5" />
             Jiwish
+          </Link>
+          <Link
+            to="/settings"
+            className={cn(
+              "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs transition-colors",
+              active === "settings"
+                ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
+                : "text-muted-foreground",
+            )}
+          >
+            <Globe className="size-3.5" />
+            Settings
           </Link>
         </nav>
       </div>

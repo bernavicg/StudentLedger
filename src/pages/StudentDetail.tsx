@@ -523,9 +523,14 @@ export default function StudentDetail() {
               Remaining balance:{" "}
               <span className="font-medium text-foreground">
                 {student.maxAuthorizedAmountCents !== null &&
-                student.ratePerSessionCents !== null
+                charges !== undefined &&
+                charges.totals.charged !== undefined
                   ? formatCentavos(
-                      student.remainingSessions * student.ratePerSessionCents,
+                      Math.max(
+                        student.maxAuthorizedAmountCents -
+                          charges.totals.charged,
+                        0,
+                      ),
                     )
                   : "not set"}
               </span>

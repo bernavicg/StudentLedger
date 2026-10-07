@@ -23,7 +23,8 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useAuth } from "@/hooks/use-auth";
 import { useClaimAdmin } from "@/hooks/use-claim-admin";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatDateTime } from "@/lib/format";
+import { useUserTimezone } from "@/hooks/use-user-timezone";
 import {
   TASK_STATUSES,
   TASK_STATUS_LABELS,
@@ -72,6 +73,7 @@ const FILTERS: { value: StatusFilter; label: string }[] = [
 
 export default function Tasks() {
   const { user } = useAuth();
+  const userTimezone = useUserTimezone();
   const { adminAvailable, claim } = useClaimAdmin();
 
   const tasks = useQuery(api.tasks.list);
@@ -320,7 +322,7 @@ export default function Tasks() {
                       </p>
                     )}
                     <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                      by {task.creatorName} · {formatDate(task.createdAt)}
+                      by {task.creatorName} · {formatDateTime(task.createdAt, userTimezone)}
                       {task.status === "done" && task.completedByName
                         ? ` · done by ${task.completedByName}`
                         : ""}

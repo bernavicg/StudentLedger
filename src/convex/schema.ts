@@ -30,6 +30,7 @@ const schema = defineSchema(
       isAnonymous: v.optional(v.boolean()), // is the user anonymous. do not remove
 
       role: v.optional(roleValidator), // role of the user. do not remove
+      timezone: v.optional(v.string()), // user's preferred timezone (e.g. "Asia/Manila") — used for date displays
     })
       .index("email", ["email"]) // index for the email. do not remove or modify
       .index("by_role", ["role"]),
@@ -125,13 +126,14 @@ const schema = defineSchema(
       .index("by_studentId", ["studentId"])
       .index("by_studentId_day", ["studentId", "day"]),
 
-    // One school-year Google Doc (September through June) shown in the
+    // One month-slot Google Doc (September 2025 through December 2026)
+    // shown in the
     // Docs page's live viewer. The doc keeps its own colors and formatting —
     // Google's preview endpoint renders it exactly as shared.
     gdocs: defineTable({
-      label: v.string(), // e.g. "September" … "June"
+      label: v.string(), // e.g. "September 2025" … "December 2026"
       gdocId: v.string(), // bare document id from the /edit URL
-      position: v.number(), // sort order (Sep=1 … Jun=10)
+      position: v.number(), // sort order (Sep 2025=0 … Dec 2026=15)
       createdBy: v.id("users"),
       createdAt: v.number(),
     })

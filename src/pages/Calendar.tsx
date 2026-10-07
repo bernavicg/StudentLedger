@@ -411,10 +411,10 @@ interface HolidayMarkersProps {
 
 const TONE_COLORS: Record<HolidayInfo["tone"], string> = {
   gold: "#d4a017",
-  blue: "#1d4ed8",
-  green: "#15803d",
-  red: "#9c3d31",
-  purple: "#6b21a8",
+  blue: "#3b82f6",
+  green: "#22c55e",
+  red: "#ef4444",
+  purple: "#a855f7",
 };
 
 function HolidayMarkers({ year, month, buttons, onDayClick }: HolidayMarkersProps) {
@@ -437,18 +437,14 @@ function HolidayMarkers({ year, month, buttons, onDayClick }: HolidayMarkersProp
   const cellGap = "0.25rem";
   const weekHeight = `calc(${cellSize} + ${cellGap})`;
 
+  // Marker size — large pill that fills most of the cell (similar to the design mock)
+  const markerSize = `calc(${cellSize} * 0.85)`;
+
   return (
     <div
       className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl"
       style={{ touchAction: "none" }}
     >
-      {/* Each marker positioned over its cell. We assume the top of the grid
-          aligns with the caption area omitted by captionLayout="none"; if the
-          calendar has a top nav/caption block we would need to offset. In our
-          configuration (captionLayout="label" with sr-only caption, showOutsideDays)
-          the month grid starts near the top of the Calendar's inner container, so
-          this works for the current build. If the app later adds a nav inside
-          Calendar, adjust top offset. */}
       {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => {
         const marker = byDay.get(day);
         if (!marker) return null;
@@ -464,13 +460,15 @@ function HolidayMarkers({ year, month, buttons, onDayClick }: HolidayMarkersProp
           <button
             key={day}
             type="button"
-            className="absolute pointer-events-auto rounded-full border-2 border-white/60 shadow-sm transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            className="absolute pointer-events-auto rounded-full border-2 border-white/70 shadow-md transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 opacity-90 hover:opacity-100"
             style={{
-              top: `${top + parseFloat(cellSize) - 10}px`,
-              left: `${left + parseFloat(cellSize) - 10}px`,
-              width: "20px",
-              height: "20px",
+              top: `${top + parseFloat(cellSize) - parseFloat(markerSize) / 2}px`,
+              left: `${left + parseFloat(cellSize) - parseFloat(markerSize) / 2}px`,
+              width: markerSize,
+              height: markerSize,
               backgroundColor: toneColor,
+              minWidth: "32px",
+              minHeight: "32px",
             }}
             onClick={() => onDayClick(day)}
             aria-label={`Holiday on ${day} ${format(new Date(year, month, day), "MMMM yyyy")}`}

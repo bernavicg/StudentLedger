@@ -285,18 +285,56 @@ export default function Students() {
                           value={formatCentavos(student.ratePerSessionCents)}
                         />
                       )}
-                      {student.remainingBalanceCents !== null && (
-                        <SummaryStat
-                          label="Remaining balance"
-                          value={formatCentavos(student.remainingBalanceCents)}
-                          tone={
-                            student.remainingBalanceCents === 0
-                              ? "muted"
-                              : "default"
-                          }
-                        />
+                      {student.maxAuthorizedAmountCents !== null &&
+                      student.remainingBalanceCents !== null && (
+                        <>
+                          <SummaryStat
+                            label="Charged"
+                            value={formatCentavos(
+                              Math.min(
+                                student.maxAuthorizedAmountCents,
+                                student.maxAuthorizedAmountCents -
+                                  student.remainingBalanceCents,
+                              ),
+                            )}
+                          />
+                          <SummaryStat
+                            label="Remaining balance"
+                            value={formatCentavos(student.remainingBalanceCents)}
+                            tone={
+                              student.remainingBalanceCents === 0
+                                ? "muted"
+                                : "default"
+                            }
+                          />
+                        </>
                       )}
                     </div>
+
+                    {/* Balance breakdown */}
+                    {student.maxAuthorizedAmountCents !== null &&
+                      student.remainingBalanceCents !== null && (
+                        <div className="mt-2 rounded-xl border border-border bg-secondary/40 px-3 py-2 text-xs">
+                          <p className="text-muted-foreground">
+                            Balance: {formatCentavos(student.maxAuthorizedAmountCents)}
+                            {student.remainingBalanceCents < student.maxAuthorizedAmountCents
+                              ? ` − ${formatCentavos(
+                                  student.maxAuthorizedAmountCents -
+                                    student.remainingBalanceCents,
+                                )} = ${formatCentavos(student.remainingBalanceCents)}`
+                              : ``}
+                          </p>
+                        </div>
+                      )}
+
+                    {/* Over-cap alert */}
+                    {student.maxAuthorizedAmountCents !== null &&
+                      student.remainingBalanceCents !== null &&
+                      student.remainingBalanceCents === 0 && (
+                        <div className="mt-2 rounded-xl bg-[#9c3d31]/10 px-3 py-2 text-xs text-[#9c3d31]">
+                          ⚠️ Charged over the authorized cap.
+                        </div>
+                      )}
 
                     {/* Duration cost hint: a longer mark burns more sessions */}
                     {student.authorizedMinutes === 30 && (
