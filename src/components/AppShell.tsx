@@ -4,9 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
 import { useSheetsAutoSync } from "@/hooks/use-sheets-auto-sync";
 import { initials } from "@/lib/format";
-import { cn } from "@/lib/utils";
-import {
-  ChevronDown,
+import { cn } from "@/lib/utils";import { ChevronDown,
   ClipboardCheck,
   Download,
   FileText,
@@ -18,6 +16,7 @@ import {
   Sparkles,
   Store,
   Users,
+  Calendar,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
@@ -46,7 +45,8 @@ export function AppShell({
     | "docs"
     | "import"
     | "assistant"
-    | "admin";
+    | "admin"
+    | "calendar";
 }) {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
@@ -235,6 +235,18 @@ export function AppShell({
               Admin
             </Link>
           )}
+          <Link
+            to="/calendar"
+            className={cn(
+              "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors",
+              active === "calendar"
+                ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
+                : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground",
+            )}
+          >
+            <Calendar className="size-4" />
+            Jiwish Calendar
+          </Link>
         </nav>
 
         <div className="mt-auto p-3">
@@ -450,6 +462,18 @@ export function AppShell({
               Admin
             </Link>
           )}
+          <Link
+            to="/calendar"
+            className={cn(
+              "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs transition-colors",
+              active === "calendar"
+                ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
+                : "text-muted-foreground",
+            )}
+          >
+            <Calendar className="size-3.5" />
+            Jiwish
+          </Link>
         </nav>
       </div>
 
