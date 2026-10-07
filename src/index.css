@@ -142,3 +142,40 @@
     scrollbar-color: oklch(0.26 0.022 60 / 18%) transparent;
   }
 }
+
+/*
+ * Holiday tone pills on the Jiwish calendar. Calendar.tsx marks holiday days
+ * with `holiday_<tone>` modifiers via react-day-picker's modifiersClassNames,
+ * and these classes paint the tone color on the day cell. Plain CSS (not
+ * Tailwind utilities) so the colors can never be purged and always win over
+ * the day button's own background states.
+ */
+.holiday-gold,
+.holiday-blue,
+.holiday-green,
+.holiday-red,
+.holiday-purple {
+  border-radius: 0.375rem;
+  font-weight: 600;
+  color: #fff !important;
+}
+
+.holiday-gold {
+  background-color: #d4a017 !important;
+}
+
+.holiday-blue {
+  background-color: #3b82f6 !important;
+}
+
+.holiday-green {
+  background-color: #22c55e !important;
+}
+
+.holiday-red {
+  background-color: #ef4444 !important;
+}
+
+.holiday-purple {
+  background-color: #a855f7 !important;
+}

@@ -84,6 +84,10 @@ const schema = defineSchema(
       ratePerSessionCents: v.optional(v.number()),
       authorizedMinutes: v.optional(v.union(v.literal(30), v.literal(60))),
       notes: v.optional(v.string()),
+      // Admin-adjusted usage: when set, these win over the attendance- and
+      // entry-derived numbers shown on the roster card (null/absent = auto).
+      manualUsedSessions: v.optional(v.number()),
+      manualUsedAmountCents: v.optional(v.number()),
       createdBy: v.id("users"),
       createdAt: v.number(),
       updatedAt: v.number(),

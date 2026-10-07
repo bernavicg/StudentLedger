@@ -163,6 +163,9 @@ export const list = query({
       "",
     );
       const approvedCharges = approvedByStudent.get(student._id) ?? 0;
+      // Manual admin overrides win over the attendance/entry-derived numbers.
+      const usedSessions = student.manualUsedSessions ?? used;
+      const chargedCents = student.manualUsedAmountCents ?? approvedCharges;
       // Derived cap: authorized sessions × rate per session.
       const maxAuthorizedAmountCents =
         student.ratePerSessionCents !== null &&
@@ -184,21 +187,24 @@ export const list = query({
           student.authorizedMinutes != null
             ? (student.totalSessions * student.authorizedMinutes) / 60
             : null,
-        usedSessions: used,
-        remainingSessions: Math.max(student.totalSessions - used, 0),
+        usedSessions,
+        manualUsedSessions: student.manualUsedSessions ?? null,
+        manualUsedAmountCents: student.manualUsedAmountCents ?? null,
+        chargedCents,
+        remainingSessions: Math.max(student.totalSessions - usedSessions, 0),
         // Hours actually attended, and what is left of the approved hours.
         usedHours: usedMinutes / 60,
         remainingHours:
           student.authorizedMinutes != null
             ? Math.max(
-                (student.totalSessions - used) * student.authorizedMinutes / 60,
+                (student.totalSessions - usedSessions) * student.authorizedMinutes / 60,
                 0,
               )
             : null,
         // Money left of the authorized cap: max cap minus approved charges.
         remainingBalanceCents:
           maxAuthorizedAmountCents != null
-            ? Math.max(maxAuthorizedAmountCents - approvedCharges, 0)
+            ? Math.max(maxAuthorizedAmountCents - chargedCents, 0)
             : null,
         // How many marks are still waiting on an admin.
         pendingReviewCount: records.filter(
@@ -326,6 +332,8 @@ export const get = query({
       (sum, record) => sum + (record.sessionsConsumed ?? 1),
       0,
     );
+    // Manual admin override wins over the attendance-derived count.
+    const usedSessions = student.manualUsedSessions ?? used;
     return {
       ...student,
       caseNo: student.caseNo ?? null,
@@ -341,8 +349,8 @@ export const get = query({
         student.authorizedMinutes != null
           ? (student.totalSessions * student.authorizedMinutes) / 60
           : null,
-      usedSessions: used,
-      remainingSessions: Math.max(student.totalSessions - used, 0),
+      usedSessions,
+      remainingSessions: Math.max(student.totalSessions - usedSessions, 0),
       records: records.map((record) => ({
         _id: record._id,
         day: record.day,
@@ -359,6 +367,51 @@ export const get = query({
         createdAt: record.createdAt,
       })),
     };
+  },
+});
+
+/**
+ * Admin override for the roster's derived usage numbers: "used sessions" and
+ * "used amount" (charged cents). Send null to clear an override and fall back
+ * to the attendance/entry-derived total. Admins only.
+ */
+export const setUsage = mutation({
+  args: {
+    studentId: v.id("students"),
+    usedSessions: v.optional(v.union(v.number(), v.null())),
+    usedAmountCents: v.optional(v.union(v.number(), v.null())),
+  },
+  handler: async (ctx, { studentId, usedSessions, usedAmountCents }) => {
+    const { role } = await requireUser(ctx);
+    if (role !== "admin") {
+      throw new Error("Only admins can adjust usage numbers.");
+    }
+    const student = await ctx.db.get(studentId);
+    if (student === null) throw new Error("Student not found.");
+
+    const patch: Partial<Doc<"students">> = {};
+    if (usedSessions !== undefined) {
+      if (usedSessions !== null) {
+        if (!Number.isInteger(usedSessions) || usedSessions < 0) {
+          throw new Error("Used sessions must be a whole number of zero or more.");
+        }
+        patch.manualUsedSessions = usedSessions;
+      } else {
+        patch.manualUsedSessions = undefined;
+      }
+    }
+    if (usedAmountCents !== undefined) {
+      if (usedAmountCents !== null) {
+        if (!Number.isFinite(usedAmountCents) || usedAmountCents < 0) {
+          throw new Error("Used amount must be zero or more.");
+        }
+        patch.manualUsedAmountCents = Math.round(usedAmountCents);
+      } else {
+        patch.manualUsedAmountCents = undefined;
+      }
+    }
+    await ctx.db.patch(studentId, patch);
+    return studentId;
   },
 });
 

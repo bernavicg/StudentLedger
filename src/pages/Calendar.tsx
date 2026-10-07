@@ -11,17 +11,13 @@ import {
 } from "@/components/ui/dialog";
 import {
   format,
-  startOfMonth,
-  endOfMonth,
   eachDayOfInterval,
   isSameDay,
   addMonths,
   subMonths,
-  isSameMonth,
   isWithinInterval,
 } from "date-fns";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
 // Jewish holiday data (Gregorian windows, approximate).
@@ -235,21 +231,18 @@ export default function CalendarPage() {
 
   const markers = useMemo(() => holidaysInMonth(year, month), [year, month]);
 
-  // We render a static set of "holiday" buttons ourselves rather than relying
-  // on DayPicker's custom modifiers classNames, because the installed
-  // react-day-picker version (9.13.0) accepts Date[] selectors but we couldn't
-  // confirm the classNames modifier hooks up to a custom "holiday" class in this
-  // build. Rendering on top of the calendar keeps the behavior deterministic.
-  const holidayButtons = useMemo(() => {
-    return markers.map((m) => {
-      const day = m.date.getDate();
-      return {
-        day,
-        info: m.info,
-        span: m.span,
-        key: format(m.date, "yyyy-MM-dd"),
-      };
-    });
+  // DayPicker modifiers: every day inside a holiday window, keyed by tone, so
+  // each holiday cell is painted by its holiday_<tone> class (see index.css).
+  const holidayModifiers = useMemo<Record<string, Date[]>>(() => {
+    const mods: Record<string, Date[]> = {};
+    for (const m of markers) {
+      const days = m.span
+        ? eachDayOfInterval({ start: m.span.from, end: m.span.to })
+        : [m.date];
+      const key = `holiday_${m.info.tone}`;
+      mods[key] = [...(mods[key] ?? []), ...days];
+    }
+    return mods;
   }, [markers]);
 
   // selected day for the popup (any date, not only in-view)
@@ -257,7 +250,15 @@ export default function CalendarPage() {
 
   const selectedMarker = useMemo<{ info: HolidayInfo; span?: { from: Date; to: Date } } | undefined>(() => {
     if (!selected) return undefined;
-    return markers.find((m) => isSameDay(m.date, selected)) ?? undefined;
+    // Clicks land on any day of a holiday window, not only the first day.
+    return (
+      markers.find(
+        (m) =>
+          isSameDay(m.date, selected) ||
+          (m.span !== undefined &&
+            isWithinInterval(selected, { start: m.span.from, end: m.span.to })),
+      ) ?? undefined
+    );
   }, [markers, selected]);
 
   const monthLabel = format(view, "MMMM yyyy");
@@ -280,7 +281,7 @@ export default function CalendarPage() {
 
   return (
     <AppShell active="calendar">
-      <div className="mx-auto w-full max-w-3xl px-6 py-8 sm:py-10">
+      <div className="mx-auto w-full max-w-xl px-6 py-8 sm:py-10">
         {/* Header */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -340,6 +341,13 @@ export default function CalendarPage() {
             showOutsideDays
             captionLayout="label"
             onMonthChange={setViewMonth}
+            // The wrapper's root is `w-fit`; stretch it so the grid fills the
+            // card and every day cell becomes a large square.
+            style={{ width: "100%" }}
+            selected={selected}
+            onSelect={(day) => setSelected(day)}
+            modifiers={holidayModifiers}
+            modifiersClassNames={HOLIDAY_MODIFIER_CLASS}
             formatters={{
               formatMonthCaption: () => "",
             }}
@@ -348,20 +356,6 @@ export default function CalendarPage() {
             }}
           />
 
-          {/* Overlay holiday markers: absolutely positioned dots/badges over
-              the calendar grid cells. The calendar is 7 columns (weekdays) by
-              ~6 rows. We compute positions relative to the grid container. */}
-          {holidayButtons.length > 0 && (
-            <HolidayMarkers
-              year={year}
-              month={month}
-              buttons={holidayButtons}
-              onDayClick={(day) => {
-                const d = new Date(year, month, day, 0, 0, 0, 0);
-                setSelected(d);
-              }}
-            />
-          )}
         </div>
 
         {/* Legend */}
@@ -378,8 +372,8 @@ export default function CalendarPage() {
         </div>
 
         <p className="mt-6 text-xs text-muted-foreground">
-          Marker colors are decorative only — each holiday's tone is described in
-          its popup. Click any marked day for details.
+          Holiday days are painted in their tone color — click any marked day
+          for the holiday detail.
         </p>
 
         {/* Popup */}
@@ -399,15 +393,17 @@ export default function CalendarPage() {
 }
 
 // ---------------------------------------------------------------------------
-// Absolute-positioned holiday markers on top of the DayPicker grid.
+// Holiday tone styling: DayPicker modifier -> CSS class (painted in index.css).
 // ---------------------------------------------------------------------------
 
-interface HolidayMarkersProps {
-  year: number;
-  month: number;
-  buttons: { day: number; info: HolidayInfo; span?: { from: Date; to: Date }; key: string }[];
-  onDayClick: (day: number) => void;
-}
+/** Modifier names handed to DayPicker; styled as tone pills in index.css. */
+const HOLIDAY_MODIFIER_CLASS: Record<string, string> = {
+  holiday_gold: "holiday-gold",
+  holiday_blue: "holiday-blue",
+  holiday_green: "holiday-green",
+  holiday_red: "holiday-red",
+  holiday_purple: "holiday-purple",
+};
 
 const TONE_COLORS: Record<HolidayInfo["tone"], string> = {
   gold: "#d4a017",
@@ -416,69 +412,6 @@ const TONE_COLORS: Record<HolidayInfo["tone"], string> = {
   red: "#ef4444",
   purple: "#a855f7",
 };
-
-function HolidayMarkers({ year, month, buttons, onDayClick }: HolidayMarkersProps) {
-  // Build a map: day-of-month -> list of markers (some days may have >1 holiday
-  // if windows overlap; we show the first one's tone as the chip color).
-  const byDay = new Map<number, { info: HolidayInfo; span?: { from: Date; to: Date } }>();
-  for (const b of buttons) {
-    if (!byDay.has(b.day)) {
-      byDay.set(b.day, { info: b.info, span: b.span });
-    }
-  }
-
-  // Get the week-start (Sunday) of the first day of the month so we can
-  // position the 1st correctly. Weekday: 0=Sunday … 6=Saturday.
-  const firstOfMonth = new Date(year, month, 1);
-  const startOffset = firstOfMonth.getDay(); // 0..6
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-  const cellSize = "min(4.5vw, 44px)"; // matches --cell-size roughly
-  const cellGap = "0.25rem";
-  const weekHeight = `calc(${cellSize} + ${cellGap})`;
-
-  // Marker size — large pill that fills most of the cell (similar to the design mock)
-  const markerSize = `calc(${cellSize} * 0.85)`;
-
-  return (
-    <div
-      className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl"
-      style={{ touchAction: "none" }}
-    >
-      {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => {
-        const marker = byDay.get(day);
-        if (!marker) return null;
-        // row: 0-based week index within the month grid
-        const gridIndex = startOffset + (day - 1);
-        const weekIndex = Math.floor(gridIndex / 7);
-        const colIndex = gridIndex % 7;
-        const top = weekIndex * (parseFloat(cellSize) + parseFloat(cellGap));
-        const left = colIndex * (parseFloat(cellSize) + parseFloat(cellGap));
-        const toneColor = TONE_COLORS[marker.info.tone];
-
-        return (
-          <button
-            key={day}
-            type="button"
-            className="absolute pointer-events-auto rounded-full border-2 border-white/70 shadow-md transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 opacity-90 hover:opacity-100"
-            style={{
-              top: `${top + parseFloat(cellSize) - parseFloat(markerSize) / 2}px`,
-              left: `${left + parseFloat(cellSize) - parseFloat(markerSize) / 2}px`,
-              width: markerSize,
-              height: markerSize,
-              backgroundColor: toneColor,
-              minWidth: "32px",
-              minHeight: "32px",
-            }}
-            onClick={() => onDayClick(day)}
-            aria-label={`Holiday on ${day} ${format(new Date(year, month, day), "MMMM yyyy")}`}
-            title={marker.info.nameEn}
-          />
-        );
-      })}
-    </div>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Holiday detail dialog

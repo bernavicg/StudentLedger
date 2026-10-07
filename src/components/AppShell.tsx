@@ -3,6 +3,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/use-auth";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
 import { useSheetsAutoSync } from "@/hooks/use-sheets-auto-sync";
+import { useUserTimezone } from "@/hooks/use-user-timezone";
 import { initials } from "@/lib/format";
 import { cn } from "@/lib/utils";import { ChevronDown,
   ClipboardCheck,
@@ -20,7 +21,7 @@ import { cn } from "@/lib/utils";import { ChevronDown,
   Calendar,
 } from "lucide-react";
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
 import {
@@ -29,6 +30,38 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
+/**
+ * Live clock in the signed-in user's timezone (browser default when unset),
+ * shown right next to the account so the team sees "their" time at a glance.
+ */
+function LiveClock({ className }: { className?: string }) {
+  const timezone = useUserTimezone();
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 15_000);
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <span
+      className={cn(
+        "tabular-nums text-xs font-medium text-muted-foreground",
+        className,
+      )}
+      title={timezone ? `Your timezone: ${timezone}` : "Browser timezone"}
+    >
+      {new Date(now).toLocaleTimeString("en-PH", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+        ...(timezone ? { timeZone: timezone } : {}),
+        timeZoneName: "short",
+      })}
+    </span>
+  );
+}
 
 export function AppShell({
   children,
@@ -283,6 +316,7 @@ export function AppShell({
                     {user?.email}
                   </span>
                 </span>
+                <LiveClock className="shrink-0" />
                 <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
               </button>
             </DropdownMenuTrigger>
@@ -309,6 +343,8 @@ export function AppShell({
       <div className="fixed inset-x-0 top-0 z-30 border-b border-border bg-sidebar sm:hidden">
         <div className="flex items-center justify-between px-4 py-2.5">
           <Wordmark size={28} />
+          <div className="flex items-center gap-2.5">
+            <LiveClock />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Avatar className="size-8 cursor-pointer">
@@ -333,6 +369,7 @@ export function AppShell({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          </div>
         </div>
         {/* Scrollable nav strip so every page is reachable on phones */}
         <nav className="flex gap-1 overflow-x-auto px-3 pb-2">

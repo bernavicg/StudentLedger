@@ -15,6 +15,8 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
+import { useAuth } from "@/hooks/use-auth";
 import { formatCentavos } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useMutation, useQuery } from "convex/react";
@@ -34,6 +36,140 @@ function formatHours(hours: number): string {
   if (hours === 0) return "0 h";
   if (hours < 1) return `${Math.round(hours * 60)} min`;
   return `${Number.isInteger(hours) ? hours : hours.toFixed(1)} h`;
+}
+
+/**
+ * Admin-only manual inputs for the card's derived usage numbers: used
+ * sessions (attendance) and used amount / charged (approved entries). Blank
+ * input = keep the automatic total; saving a value stores an override, and
+ * clearing it falls back to the derived number again.
+ */
+function UsageOverride({
+  studentId,
+  usedSessions,
+  chargedCents,
+  manualUsedSessions,
+  manualUsedAmountCents,
+}: {
+  studentId: Id<"students">;
+  usedSessions: number;
+  chargedCents: number | null;
+  manualUsedSessions: number | null;
+  manualUsedAmountCents: number | null;
+}) {
+  const setUsage = useMutation(api.students.setUsage);
+  const [saving, setSaving] = useState(false);
+  // Bumped on errors so the uncontrolled inputs remount and reset.
+  const [nonce, setNonce] = useState(0);
+
+  const save = async (args: {
+    usedSessions?: number | null;
+    usedAmountCents?: number | null;
+  }) => {
+    setSaving(true);
+    try {
+      await setUsage({ studentId, ...args });
+      toast.success("Usage updated.");
+    } catch (error) {
+      setNonce((n) => n + 1);
+      toast.error(
+        error instanceof Error ? error.message : "Could not save usage.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveSessions = async (raw: string) => {
+    const text = raw.trim();
+    const value = text === "" ? null : Number(text);
+    if (value !== null && (!Number.isInteger(value) || value < 0)) {
+      setNonce((n) => n + 1);
+      toast.error("Used sessions must be a whole number of zero or more.");
+      return;
+    }
+    if ((value ?? null) === (manualUsedSessions ?? null)) return;
+    // Typing the automatic total back in just clears the override.
+    if (value !== null && manualUsedSessions === null && value === usedSessions) return;
+    await save({ usedSessions: value });
+  };
+
+  const saveAmount = async (raw: string) => {
+    const text = raw.replace(/[^0-9.]/g, "").trim();
+    const value = text === "" ? null : Math.round(Number(text) * 100);
+    if (value !== null && (!Number.isFinite(value) || value < 0)) {
+      setNonce((n) => n + 1);
+      toast.error("Used amount must be a number of zero or more.");
+      return;
+    }
+    if ((value ?? null) === (manualUsedAmountCents ?? null)) return;
+    if (
+      value !== null &&
+      manualUsedAmountCents === null &&
+      chargedCents !== null &&
+      value === chargedCents
+    ) {
+      return;
+    }
+    await save({ usedAmountCents: value });
+  };
+
+  const resetKey = `${manualUsedSessions ?? "s"}:${manualUsedAmountCents ?? "a"}:${usedSessions}:${chargedCents ?? "c"}:${nonce}`;
+
+  return (
+    <div className="mt-3 grid grid-cols-2 gap-2 border-t border-border pt-3">
+      <label className="grid gap-1">
+        <span className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
+          Used sessions (manual)
+        </span>
+        <Input
+          key={`sessions-${resetKey}`}
+          type="number"
+          min={0}
+          step={1}
+          inputMode="numeric"
+          disabled={saving}
+          defaultValue={manualUsedSessions !== null ? String(manualUsedSessions) : ""}
+          placeholder={String(usedSessions)}
+          className="h-8 text-sm"
+          onBlur={(event) => void saveSessions(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") event.currentTarget.blur();
+          }}
+        />
+      </label>
+      <label className="grid gap-1">
+        <span className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
+          Used amount (manual)
+        </span>
+        <Input
+          key={`amount-${resetKey}`}
+          type="number"
+          min={0}
+          step="0.01"
+          inputMode="decimal"
+          disabled={saving}
+          defaultValue={
+            manualUsedAmountCents !== null
+              ? (manualUsedAmountCents / 100).toFixed(2)
+              : ""
+          }
+          placeholder={
+            chargedCents !== null ? (chargedCents / 100).toFixed(2) : "—"
+          }
+          className="h-8 text-sm"
+          onBlur={(event) => void saveAmount(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") event.currentTarget.blur();
+          }}
+        />
+      </label>
+      <p className="col-span-2 text-[11px] text-muted-foreground">
+        Admin override — blank keeps the automatic total (attendance + approved
+        entries).
+      </p>
+    </div>
+  );
 }
 
 /** One labelled figure in the roster summary grid. */
@@ -64,6 +200,8 @@ function SummaryStat({
 }
 
 export default function Students() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
   const students = useQuery(api.students.list);
   const createStudent = useMutation(api.students.create);
 
@@ -310,6 +448,17 @@ export default function Students() {
                         </>
                       )}
                     </div>
+
+                    {/* Admin: manually adjust the derived usage numbers */}
+                    {isAdmin && (
+                      <UsageOverride
+                        studentId={student._id}
+                        usedSessions={student.usedSessions}
+                        chargedCents={student.chargedCents}
+                        manualUsedSessions={student.manualUsedSessions}
+                        manualUsedAmountCents={student.manualUsedAmountCents}
+                      />
+                    )}
 
                     {/* Balance breakdown */}
                     {student.maxAuthorizedAmountCents !== null &&
