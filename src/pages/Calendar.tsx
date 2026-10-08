@@ -150,6 +150,18 @@ const HOLIDAYS: readonly HolidayEntry[] = [
     tone: "red",
   }},
 
+  // ---- Shemini Atzeret & Simchat Torah (Diaspora) — Oct 2–4, 2026 ----
+  // These follow Sukkot and fall in October in 2026, so a grayscale October
+  // month actually has visible holiday cells. The dataset is approximate
+  // (floating holidays shift with the Hebrew date); this entry is a stand-in
+  // window for demonstration, not a halakhic date.
+  { kind: "range", month: 9, dayStart: 2, dayEnd: 4, info: {
+    nameEn: "Shemini Atzeret & Simchat Torah",
+    nameHe: "שמיני עצרת וסוכות",
+    note: "Concluding assembly after Sukkot, then rejoicing with the Torah — dancing with the scrolls, finishing and restarting the cycle. In the Diaspora these are two separate days.",
+    tone: "purple",
+  }},
+
   // ---- Non-Jewish / secular "Jiwish" team holidays can go here ----
   // Example placeholder so the dataset isn't purely Jewish:
   { kind: "fixed", month: 0, day: 1, info: {
@@ -343,6 +355,7 @@ export default function CalendarPage() {
             onMonthChange={setViewMonth}
             // The wrapper's root is `w-fit`; stretch it so the grid fills the
             // card and every day cell becomes a large square.
+            month={view}
             style={{ width: "100%" }}
             selected={selected}
             onSelect={(day) => setSelected(day)}
