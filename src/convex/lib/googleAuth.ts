@@ -69,10 +69,12 @@ export async function getGoogleAccessToken(
     }),
   );
 
-  const signed = createSign("RSA-SHA256")
-    .update(`${header}.${claims}`)
-    .sign(privateKey);
-  const assertion = `${header}.${signed}`;
+  const unsigned = `${header}.${claims}`;
+  const signed = createSign("RSA-SHA256").update(unsigned).sign(privateKey);
+  // The signature must be base64url like the other two segments — string
+  // -interpolating the raw Buffer produces UTF-8 garbage and Google rejects
+  // the assertion with 400 invalid_request.
+  const assertion = `${unsigned}.${base64url(signed)}`;
 
   const response = await fetch(TOKEN_URI, {
     method: "POST",
