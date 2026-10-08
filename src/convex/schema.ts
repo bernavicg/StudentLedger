@@ -131,18 +131,24 @@ const schema = defineSchema(
       .index("by_studentId_day", ["studentId", "day"]),
 
     // One month-slot Google Doc (September 2025 through December 2026)
-    // shown in the
-    // Docs page's live viewer. The doc keeps its own colors and formatting —
-    // Google's preview endpoint renders it exactly as shared.
+    // shown in the Docs page's live viewer. The doc keeps its own colors and
+    // formatting — Google's preview endpoint renders it exactly as shared.
+    //
+    // `title` is the doc's own title from the Google Docs API (used by the
+    // Docs-page search). `searchText` is a cached, flattened, lowercased copy
+    // of the doc's visible text, refreshed when the doc is saved or re-indexed.
     gdocs: defineTable({
       label: v.string(), // e.g. "September 2025" … "December 2026"
       gdocId: v.string(), // bare document id from the /edit URL
+      title: v.optional(v.string()), // doc title from the Google Docs API
+      searchText: v.optional(v.string()), // cached searchable text (lowercased)
       position: v.number(), // sort order (Sep 2025=0 … Dec 2026=15)
       createdBy: v.id("users"),
       createdAt: v.number(),
     })
       .index("by_label", ["label"])
-      .index("by_position", ["position"]),
+      .index("by_position", ["position"])
+      .index("by_gdocId", ["gdocId"]),
 
     // One team to-do task shown on the task monitoring board (the dashboard).
     // Every signed-in member can create tasks and move them along

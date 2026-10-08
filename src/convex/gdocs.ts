@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalMutation } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import { extractGdocId } from "./lib/gdocId";
@@ -78,14 +78,17 @@ export const list = query({
     await requireUser(ctx);
     const docs = await ctx.db.query("gdocs").collect();
     const order = new Map(SCHOOL_YEAR_MONTHS.map((m, i) => [m, i]));
-    return docs
-      .map((doc) => ({
-        _id: doc._id,
-        label: LEGACY_MONTH_LABELS[doc.label] ?? doc.label,
-        gdocId: doc.gdocId,
-        position: doc.position,
-        createdAt: doc.createdAt,
-      }))
+    const docsList = docs.map((doc) => ({
+      _id: doc._id,
+      label: LEGACY_MONTH_LABELS[doc.label] ?? doc.label,
+      gdocId: doc.gdocId,
+      title: doc.title ?? "",
+      searchText: doc.searchText ?? "",
+      position: doc.position,
+      createdAt: doc.createdAt,
+    }));
+
+    return docsList
       .sort(
         (a, b) =>
           (order.get(a.label as (typeof SCHOOL_YEAR_MONTHS)[number]) ?? 99) -
@@ -108,6 +111,7 @@ export const set = mutation({
     if (!SCHOOL_YEAR_MONTHS.includes(trimmedLabel as SchoolYearMonth)) {
       throw new Error("Pick a month from September 2025 to December 2026.");
     }
+
     const gdocId = extractGdocId(gdocUrl);
     if (gdocId === "") {
       throw new Error("Paste the Google Doc URL or id.");
@@ -130,6 +134,32 @@ export const set = mutation({
       createdBy: admin.userId,
       createdAt: Date.now(),
     });
+  },
+});
+
+/**
+ * Store the title + flattened body fetched from the Google Docs API for one
+ * saved doc, so the Docs page can search *inside* documents.
+ *
+ * Admin only, and internal: it is the write half of the `reindexDoc` action,
+ * which runs in Node (network + crypto) and has no `ctx.db` of its own.
+ */
+export const applySearchIndex = internalMutation({
+  args: {
+    gdocId: v.string(),
+    title: v.string(),
+    searchText: v.string(),
+  },
+  handler: async (ctx, { gdocId, title, searchText }) => {
+    await requireAdmin(ctx);
+    const row = await ctx.db
+      .query("gdocs")
+      .withIndex("by_gdocId", (q) => q.eq("gdocId", gdocId))
+      .unique();
+    if (!row) {
+      throw new Error("That doc is not saved to a month yet.");
+    }
+    await ctx.db.patch(row._id, { title, searchText });
   },
 });
 

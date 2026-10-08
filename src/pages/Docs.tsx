@@ -17,13 +17,14 @@ import {
   gdocEmbedUrl,
 } from "@/convex/lib/gdocId";
 import { useAuth } from "@/hooks/use-auth";
-import { useMutation, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import {
   ExternalLink,
   FileText,
   Lock,
   Plus,
   RefreshCw,
+  Search,
   Trash2,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -49,7 +50,7 @@ const MONTHS = [
   "December 2026",
 ] as const;
 
-/** "September 2026" → "Sep 26", so same-month pills stay distinguishable. */
+/** "September 2026" -> "Sep 26", so same-month pills stay distinguishable. */
 function pillLabel(label: string) {
   const [monthName, year] = label.split(" ");
   return year === undefined
@@ -68,16 +69,63 @@ type MonthDoc = {
   _id: string;
   label: string;
   gdocId: string;
+  title: string;
+  searchText: string;
 };
 
 function docFor(docs: MonthDoc[] | undefined, label: string) {
   return docs?.find((d: MonthDoc) => d.label === label);
 }
 
-/**
- * Docs: the school-year Google Docs (Sep 2025 – Dec 2026) in one live viewer,
- * replacing the old Scrapes page. Same pattern as the Sheets page — paste a
+/** Score how well a doc matches the search term. Higher = better (rises to top).
+ *
+ * Matches are case-insensitive. Title matches are worth the most (they are
+ * what the doc *is*), then matches inside the doc's own text, then the plain
+ * month label — so the "right" doc rises above a doc that merely mentions the
+ * keyword in passing.
+ */
+function matchScore(doc: MonthDoc, term: string): number {
+  if (term === "") return 0;
+  let score = 0;
+  const labelLower = doc.label.toLowerCase();
+  const titleLower = doc.title.toLowerCase();
+  const bodyLower = doc.searchText.toLowerCase();
+
+  if (labelLower.includes(term)) score += 1;
+  if (titleLower.includes(term)) score += 5;
+  if (bodyLower.includes(term)) score += 3;
+
+  return score;
+}
+
+/** True when the term occurs in the doc's own body (not just its label/title). */
+function bodyMatch(doc: MonthDoc | undefined, term: string): boolean {
+  return (
+    term !== "" && doc !== undefined && doc.searchText.toLowerCase().includes(term)
+  );
+}
+
+/** A short window of the doc body around the first occurrence of `term`, or
+ * the start of the body when the term isn't in it. Used as the search-result
+ * snippet so the user can see *why* a doc matched before opening it.
+ */
+function snippet(doc: MonthDoc, term: string): string {
+  if (term.trim() === "") return "";
+  const idx = doc.searchText.indexOf(term);
+  if (idx === -1) {
+    return doc.searchText.slice(0, 80).trim();
+  }
+  const start = Math.max(0, idx - 40);
+  return doc.searchText.slice(start, start + 120).trim();
+}
+
+/** Docs: the school-year Google Docs (Sep 2025 - Dec 2026) in one live viewer,
+ * replacing the old Scrapes page. Same pattern as the Sheets page - paste a
  * URL or id, and Google renders the doc exactly as shared, colors included.
+ *
+ * Search matches against the month label AND the doc's own title and cached
+ * content (from the Google Docs API), so a keyword that appears inside the
+ * document rises to the top of the month list.
  */
 export default function Docs() {
   const { user, isLoading } = useAuth();
@@ -87,8 +135,9 @@ export default function Docs() {
   const setDoc = useMutation(api.gdocs.set);
   const removeDoc = useMutation(api.gdocs.remove);
   const migrateLabels = useMutation(api.gdocs.migrateLabels);
+  const reindexDoc = useAction(api.gdocsActions.reindexDoc);
 
-  // Rename legacy plain-month labels ("September" → "September 2025") once
+  // Rename legacy plain-month labels ("September" -> "September 2025") once
   // per load. Idempotent server-side; a failure is harmless because list()
   // normalizes old labels for display anyway.
   useEffect(() => {
@@ -100,19 +149,48 @@ export default function Docs() {
   const [search, setSearch] = useState("");
   const [url, setUrl] = useState("");
   const [saving, setSaving] = useState(false);
-  const [removing, setRemoving] = useState<string | null>(null);
+  const [reindexing, setReindexing] = useState(false);
+  const [removing, setRemoving] = useState(false);
 
-  const filteredMonths =
-    search.trim() === ""
-      ? MONTHS
-      : MONTHS.filter((m) =>
-          m.toLowerCase().includes(search.trim().toLowerCase()),
-        );
+  // Ranked month list. With a search term only matching months survive,
+  // best match first (title > body > plain label); with no term every month
+  // is listed in school-year order.
+  const ranked = (() => {
+    const term = search.trim().toLowerCase();
+    const all = MONTHS.map((m) => {
+      const doc = docFor(docs, m);
+      return { month: m, doc, score: doc ? matchScore(doc, term) : 0 };
+    });
+    return term === "" ? all : all.filter((item) => item.score > 0);
+  })();
 
   const searchEmpty = search.trim() === "";
-  const searchNoMatch = !searchEmpty && filteredMonths.length === 0;
-
+  const searchNoMatch = !searchEmpty && ranked.length === 0;
   const savedRef = useRef<Record<string, string>>({});
+
+  // Docs saved before search indexing existed (or whose index failed) have no
+  // cached text, so nothing inside them is findable. Backfill them once per
+  // session, admins only — non-admins just search whatever is already cached.
+  const backfilledRef = useRef(false);
+  useEffect(() => {
+    if (isLoading || docs === undefined || !isAdmin || backfilledRef.current) {
+      return;
+    }
+    const missing = docs.filter((d) => d.searchText === "");
+    if (missing.length === 0) return;
+    backfilledRef.current = true;
+    void (async () => {
+      for (const doc of missing) {
+        try {
+          await reindexDoc({ gdocId: doc.gdocId });
+        } catch {
+          // Almost always "the doc isn't shared with the service account".
+          // Search then simply skips that doc; the Re-index button stays
+          // available once sharing is fixed.
+        }
+      }
+    })();
+  }, [isLoading, docs, isAdmin, reindexDoc]);
 
   const active = docFor(docs, month);
 
@@ -121,7 +199,22 @@ export default function Docs() {
     setSaving(true);
     try {
       await setDoc({ label: month, gdocUrl: url });
-      savedRef.current[month] = extractGdocId(url);
+      const gdocId = extractGdocId(url);
+      savedRef.current[month] = gdocId;
+      if (gdocId) {
+        try {
+          await reindexDoc({ gdocId });
+        } catch (reindexError) {
+          // Save succeeded but indexing failed (e.g. doc not shared with the
+          // service account). The doc still shows; search just won't find its
+          // content until it's re-indexed.
+          toast.warning(
+            reindexError instanceof Error
+              ? reindexError.message
+              : "Saved, but could not index the doc for search.",
+          );
+        }
+      }
       setUrl("");
       toast.success(`${month} saved.`);
     } catch (error) {
@@ -133,8 +226,32 @@ export default function Docs() {
     }
   };
 
+  const handleReindex = async (label: string) => {
+    const doc = docFor(docs, label);
+    if (!doc) {
+      toast.error("No doc found for that month.");
+      return;
+    }
+    setReindexing(true);
+    try {
+      await reindexDoc({ gdocId: doc.gdocId });
+      toast.success(`${label} re-indexed.`);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Could not re-index the doc.",
+      );
+    } finally {
+      setReindexing(false);
+    }
+  };
+
   const handleRemove = async (label: string) => {
-    setRemoving(label);
+    const doc = docFor(docs, label);
+    if (!doc) {
+      toast.error("No doc found for that month.");
+      return;
+    }
+    setRemoving(true);
     try {
       await removeDoc({ label });
       toast.success(`${label} removed.`);
@@ -143,7 +260,7 @@ export default function Docs() {
         error instanceof Error ? error.message : "Could not remove the doc.",
       );
     } finally {
-      setRemoving(null);
+      setRemoving(false);
     }
   };
 
@@ -178,14 +295,13 @@ export default function Docs() {
         {/* Search */}
         <div className="mt-6 flex flex-col gap-2">
           <div className="relative">
-            <Label className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-              Search months
-            </Label>
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Type a month, e.g. October 2026"
-              className="pl-9"
+              aria-label="Search months and doc content"
+              placeholder="Search a month, title, or a word inside a doc"
+              className="pl-9 pr-9"
             />
             {search && (
               <button
@@ -202,14 +318,16 @@ export default function Docs() {
           </div>
           {searchNoMatch && (
             <p className="text-xs text-muted-foreground">
-              Walay month nga match sa “{search}”.
+              Walay month o doc nga match sa "{search}".
             </p>
           )}
 
-          {/* Month picker */}
+          {/* Month picker (matching months only, best match first) */}
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
-            {filteredMonths.map((m) => {
-              const saved = docFor(docs, m);
+            {ranked.map(({ month: m, doc, score }) => {
+              const saved = doc ? doc.gdocId : undefined;
+              const term = search.trim().toLowerCase();
+              const inBody = bodyMatch(doc, term);
               return (
                 <button
                   key={m}
@@ -220,6 +338,13 @@ export default function Docs() {
                       ? "rounded-full bg-primary px-3.5 py-1.5 text-xs font-medium text-primary-foreground"
                       : "rounded-full border border-border px-3.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                   }
+                  title={
+                    doc?.title
+                      ? inBody
+                        ? `Found inside: ${doc.title}`
+                        : doc.title
+                      : m
+                  }
                 >
                   {pillLabel(m)}
                   {saved && (
@@ -228,11 +353,45 @@ export default function Docs() {
                       title="Doc saved"
                     />
                   )}
+                  {inBody && (
+                    <span
+                      className="ml-1 inline-block size-1.5 rounded-full bg-amber-500"
+                      title="Match found inside the doc"
+                    />
+                  )}
+                  {score > 0 && !inBody && (
+                    <span
+                      className="ml-1 inline-block size-1.5 rounded-full bg-sky-600"
+                      title="Match on the month or doc title"
+                    />
+                  )}
                 </button>
               );
             })}
           </div>
         </div>
+
+        {/* Search result guidance */}
+        {!searchEmpty && ranked.length > 0 && ranked[0].score > 0 && (
+          <div className="mt-3 text-xs text-muted-foreground">
+            <p>
+              {ranked.length} nga month/doc ang match sa "{search}".
+              {ranked[0].doc?.title && (
+                <>
+                  {" "}
+                  <span className="font-medium text-foreground/80">
+                    Top match: {ranked[0].doc.title}
+                  </span>
+                </>
+              )}
+            </p>
+            {ranked[0].doc && snippet(ranked[0].doc, search.trim().toLowerCase()) && (
+              <p className="mt-1 italic">
+                “{snippet(ranked[0].doc, search.trim().toLowerCase())}”
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Live viewer for the selected month */}
         {searchNoMatch ? (
@@ -240,7 +399,7 @@ export default function Docs() {
             <div className="flex flex-col items-center py-14 text-center">
               <FileText className="size-9 text-muted-foreground" />
               <p className="mt-3 font-serif text-xl font-semibold">
-                Walay doc nga makita sa “{search}”
+                Walay doc nga makita sa "{search}"
               </p>
               <p className="mt-1 max-w-sm text-sm text-muted-foreground">
                 Try another search term, or clear the search to see all months.
@@ -270,21 +429,35 @@ export default function Docs() {
                 </a>
               </p>
               {isAdmin && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => void handleRemove(active.label)}
-                  disabled={removing === active.label}
-                  className="text-[#9c3d31] hover:bg-[#9c3d31]/10 hover:text-[#9c3d31]"
-                >
-                  <Trash2 className="mr-1.5 size-3.5" />
-                  Remove {active.label}
-                </Button>
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void handleReindex(active.label)}
+                    disabled={reindexing || removing}
+                    className="text-[#2e5c4d] hover:bg-[#2e5c4d]/10 hover:text-[#2e5c4d]"
+                  >
+                    <RefreshCw
+                      className={`mr-1.5 size-3.5 ${reindexing ? "animate-spin" : ""}`}
+                    />
+                    Re-index {active.label}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void handleRemove(active.label)}
+                    disabled={reindexing || removing}
+                    className="text-[#9c3d31] hover:bg-[#9c3d31]/10 hover:text-[#9c3d31]"
+                  >
+                    <Trash2 className="mr-1.5 size-3.5" />
+                    Remove {active.label}
+                  </Button>
+                </>
               )}
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
-              Blank viewer? Share the doc as &ldquo;anyone with the link&rdquo;
-              (viewer), then reload.
+              Blank viewer? Share the doc as "anyone with the link" (viewer),
+              then reload.
             </p>
           </div>
         ) : (
@@ -296,7 +469,7 @@ export default function Docs() {
               </p>
               <p className="mt-1 max-w-sm text-sm text-muted-foreground">
                 {isAdmin
-                  ? "Paste ang Google Doc URL o id sa ubos para ma-show diri."
+                  ? "Paste the Google Doc URL or id below to add it."
                   : "Hangyoon ang admin nga mo-add ug doc kini nga month."}
               </p>
             </div>
@@ -312,7 +485,8 @@ export default function Docs() {
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
               Paste the whole Google Doc URL (or just the id). Replacing keeps
-              the same month slot.
+              the same month slot. The doc must be shared with the Ledger service
+              account for search to index it.
             </p>
             <div className="mt-4 grid gap-3 sm:grid-cols-[180px_1fr_auto] sm:items-end">
               <div className="grid gap-1.5">
@@ -343,9 +517,6 @@ export default function Docs() {
                 onClick={() => void handleSave()}
                 disabled={saving || extractGdocId(url) === ""}
               >
-                <RefreshCw
-                  className={saveIconClass(saving)}
-                />
                 {saving ? "Saving…" : "Save"}
               </Button>
             </div>
@@ -361,8 +532,4 @@ export default function Docs() {
       </div>
     </AppShell>
   );
-}
-
-function saveIconClass(saving: boolean) {
-  return `mr-2 size-4${saving ? " animate-spin" : ""}`;
 }
