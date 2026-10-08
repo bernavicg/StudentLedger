@@ -160,8 +160,8 @@ export default function EntryDetail() {
     );
   }
 
-  const isOwner = entry.mine;
-  const isAdmin = entry.viewerRole === "admin";
+  const isOwner = entry?.mine ?? false;
+  const isAdmin = entry?.viewerRole === "admin";
   const userTimezone = useUserTimezone();
 
   // Actions depend on the viewer: admins settle; owners manage their own
