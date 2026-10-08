@@ -97,9 +97,20 @@ export default function Docs() {
   }, [isLoading, migrateLabels]);
 
   const [month, setMonth] = useState<string>(DEFAULT_MONTH);
+  const [search, setSearch] = useState("");
   const [url, setUrl] = useState("");
   const [saving, setSaving] = useState(false);
   const [removing, setRemoving] = useState<string | null>(null);
+
+  const filteredMonths =
+    search.trim() === ""
+      ? MONTHS
+      : MONTHS.filter((m) =>
+          m.toLowerCase().includes(search.trim().toLowerCase()),
+        );
+
+  const searchEmpty = search.trim() === "";
+  const searchNoMatch = !searchEmpty && filteredMonths.length === 0;
 
   const savedRef = useRef<Record<string, string>>({});
 
@@ -164,35 +175,79 @@ export default function Docs() {
           </p>
         </header>
 
-        {/* Month picker */}
-        <div className="mt-6 flex flex-wrap items-center gap-1.5">
-          {MONTHS.map((m) => {
-            const saved = docFor(docs, m);
-            return (
+        {/* Search */}
+        <div className="mt-6 flex flex-col gap-2">
+          <div className="relative">
+            <Label className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+              Search months
+            </Label>
+            <Input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Type a month, e.g. October 2026"
+              className="pl-9"
+            />
+            {search && (
               <button
-                key={m}
                 type="button"
-                onClick={() => setMonth(m)}
-                className={
-                  month === m
-                    ? "rounded-full bg-primary px-3.5 py-1.5 text-xs font-medium text-primary-foreground"
-                    : "rounded-full border border-border px-3.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                }
+                onClick={() => setSearch("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-muted-foreground hover:bg-accent"
+                aria-label="Clear search"
               >
-                {pillLabel(m)}
-                {saved && (
-                  <span
-                    className="ml-1.5 inline-block size-1.5 rounded-full bg-[#2e5c4d]"
-                    title="Doc saved"
-                  />
-                )}
+                <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M18 6 6 18M6 6l12 12" />
+                </svg>
               </button>
-            );
-          })}
+            )}
+          </div>
+          {searchNoMatch && (
+            <p className="text-xs text-muted-foreground">
+              Walay month nga match sa “{search}”.
+            </p>
+          )}
+
+          {/* Month picker */}
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            {filteredMonths.map((m) => {
+              const saved = docFor(docs, m);
+              return (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setMonth(m)}
+                  className={
+                    month === m
+                      ? "rounded-full bg-primary px-3.5 py-1.5 text-xs font-medium text-primary-foreground"
+                      : "rounded-full border border-border px-3.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                  }
+                >
+                  {pillLabel(m)}
+                  {saved && (
+                    <span
+                      className="ml-1.5 inline-block size-1.5 rounded-full bg-[#2e5c4d]"
+                      title="Doc saved"
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Live viewer for the selected month */}
-        {active ? (
+        {searchNoMatch ? (
+          <div className="mt-4 rounded-2xl border border-border bg-card">
+            <div className="flex flex-col items-center py-14 text-center">
+              <FileText className="size-9 text-muted-foreground" />
+              <p className="mt-3 font-serif text-xl font-semibold">
+                Walay doc nga makita sa “{search}”
+              </p>
+              <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+                Try another search term, or clear the search to see all months.
+              </p>
+            </div>
+          </div>
+        ) : active ? (
           <div className="mt-4">
             <div className="rounded-2xl border border-border bg-card p-0">
               <iframe
