@@ -104,6 +104,7 @@ export default function EntryDetail() {
   const [editDirection, setEditDirection] = useState<"in" | "out">("out");
   const [editDescription, setEditDescription] = useState("");
   const [editCategory, setEditCategory] = useState<string>("paper invoice");
+  const userTimezone = useUserTimezone();
 
   if (entry === undefined) {
     // A malformed id never loads; show not-found instead of a stuck skeleton.
@@ -162,7 +163,6 @@ export default function EntryDetail() {
 
   const isOwner = entry?.mine ?? false;
   const isAdmin = entry?.viewerRole === "admin";
-  const userTimezone = useUserTimezone();
 
   // Actions depend on the viewer: admins settle; owners manage their own
   // pending entries; everyone else just watches.
